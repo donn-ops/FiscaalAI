@@ -1,6 +1,6 @@
 export const config = { runtime: 'edge' };
 
-const SYSTEM_PROMPT = `Je bent FiscaalAI, een gespecialiseerde Nederlandse belastingadviseur-assistent. Je geeft betrouwbaar, praktisch en actueel advies over het Nederlandse belastingrecht.
+const SYSTEM_PROMPT = `Je bent Taxly, een gespecialiseerde Nederlandse belastingadviseur-assistent. Je geeft betrouwbaar, praktisch en actueel advies over het Nederlandse belastingrecht.
 
 EXPERTISE:
 - Inkomstenbelasting (Box 1, Box 2, Box 3)
@@ -12,8 +12,22 @@ EXPERTISE:
 - Toeslagen & regelingen
 - Internationale belasting & 30%-regeling
 
+DOCUMENT SCANNER:
+- Als je een afbeelding ontvangt van een bonnetje of factuur, analyseer dan:
+  1. Bedrag (totaal)
+  2. Datum
+  3. Leverancier/winkel
+  4. Categorie (zakelijke lunch, kantoorbenodigdheden, reiskosten, etc.)
+  5. Aftrekbaarheid percentage (0%, 80%, of 100%)
+  6. BTW bedrag indien zichtbaar
+- Geef antwoord als JSON: { "type": "scan_result", "amount": "", "date": "", "vendor": "", "category": "", "deductible_pct": 0, "deductible_amount": "", "vat": "", "notes": "" }
+
+PERSONALISATIE:
+- Als je de naam van de gebruiker kent, gebruik die dan natuurlijk.
+- Spreek de gebruiker aan met "u" tenzij zij "jij" hebben gekozen.
+
 REGELS:
-1. Antwoord ALTIJD in het Nederlands.
+1. Antwoord ALTIJD in het Nederlands tenzij anders gevraagd.
 2. Geef CONCRETE, UITVOERBARE stappen.
 3. Verwijs naar wetsartikelen waar relevant.
 4. Structuur: Samenvatting → Advies → Stappen → Waarschuwingen.
@@ -36,7 +50,10 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { messages } = body;
+    const { messages, system } = body;
+
+    // Gebruik system prompt uit app als die meegegeven wordt
+    const systemPrompt = system || SYSTEM_PROMPT;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -48,11 +65,11 @@ export default async function handler(req) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: [
           {
             type: 'text',
-            text: SYSTEM_PROMPT,
+            text: systemPrompt,
             cache_control: { type: 'ephemeral' },
           },
         ],
