@@ -1,213 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, Switch
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { getUserData, saveTaxProfile, getTaxProfile, saveUserData, clearUserData } from '../utils/storage';
-import { scheduleDeadlineNotifications, requestPermissions } from '../utils/notifications';
-import { t } from '../constants/translations';
+import React, { useState, useEffect } from ‘react’;
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Switch } from ‘react-native’;
+import { SafeAreaView } from ‘react-native-safe-area-context’;
+import { getUserData, saveTaxProfile, getTaxProfile, clearUserData } from ‘../utils/storage’;
+import { scheduleDeadlineNotifications, requestPermissions } from ‘../utils/notifications’;
+import { t } from ‘../constants/translations’;
+import { Colors, Radii, Shadows } from ‘../constants/theme’;
 
 const SITUATIONS = [
-  { key: 'particulier', icon: '👤', label: { nl: 'Particulier', en: 'Individual', de: 'Privatperson', fr: 'Particulier' } },
-  { key: 'zzp', icon: '💼', label: { nl: 'ZZP\'er', en: 'Freelancer', de: 'Freiberufler', fr: 'Indépendant' } },
-  { key: 'mkb', icon: '🏢', label: { nl: 'MKB / BV', en: 'SME / Ltd', de: 'KMU / GmbH', fr: 'PME / SARL' } },
-  { key: 'dga', icon: '👔', label: { nl: 'DGA', en: 'Director', de: 'Geschäftsführer', fr: 'Dirigeant' } },
+{ key:‘particulier’, icon:‘👤’, label:{ nl:‘Particulier’, en:‘Individual’, de:‘Privatperson’, fr:‘Particulier’ } },
+{ key:‘zzp’,        icon:‘💼’, label:{ nl:“ZZP’er”,      en:‘Freelancer’, de:‘Freiberufler’, fr:‘Indépendant’ } },
+{ key:‘mkb’,        icon:‘🏢’, label:{ nl:‘MKB / BV’,    en:‘SME / Ltd’,  de:‘KMU / GmbH’,   fr:‘PME / SARL’ } },
+{ key:‘dga’,        icon:‘👔’, label:{ nl:‘DGA’,         en:‘Director’,   de:‘Geschäftsführer’, fr:‘Dirigeant’ } },
 ];
 
-export default function ProfileScreen({ navigation }) {
-  const [userData, setUserData] = useState(null);
-  const [situation, setSituation] = useState('particulier');
-  const [ownHome, setOwnHome] = useState(false);
-  const [hasPartner, setHasPartner] = useState(false);
-  const [hasKids, setHasKids] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const lang = userData?.language || 'nl';
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const user = await getUserData();
-    const profile = await getTaxProfile();
-    setUserData(user);
-    if (profile) {
-      setSituation(profile.situation || 'particulier');
-      setOwnHome(profile.ownHome || false);
-      setHasPartner(profile.hasPartner || false);
-      setHasKids(profile.hasKids || false);
-      setNotifications(profile.notifications !== false);
-    }
-  };
-
-  const saveProfile = async () => {
-    const profile = { situation, ownHome, hasPartner, hasKids, notifications };
-    await saveTaxProfile(profile);
-    if (notifications) {
-      const granted = await requestPermissions();
-      if (granted) await scheduleDeadlineNotifications(profile);
-    }
-    Alert.alert('✓', t(lang, 'profile_saved'));
-  };
-
-  const resetApp = () => {
-    Alert.alert(
-      'Reset',
-      'Weet u zeker dat u alle data wilt verwijderen?',
-      [
-        { text: 'Annuleren', style: 'cancel' },
-        { text: 'Verwijderen', style: 'destructive', onPress: async () => {
-          await clearUserData();
-          navigation.replace('Onboarding');
-        }},
-      ]
-    );
-  };
-
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t(lang, 'tax_profile')}</Text>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>T</Text>
-          </View>
-        </View>
-
-        {userData && (
-          <View style={styles.userCard}>
-            <Text style={styles.userName}>{userData.name}</Text>
-            <Text style={styles.userLang}>🌍 {userData.language?.toUpperCase()}</Text>
-          </View>
-        )}
-
-        <Text style={styles.sectionLabel}>{t(lang, 'situation')}</Text>
-        <View style={styles.situationGrid}>
-          {SITUATIONS.map((s) => (
-            <TouchableOpacity
-              key={s.key}
-              style={[styles.situationCard, situation === s.key && styles.situationCardActive]}
-              onPress={() => setSituation(s.key)}
-            >
-              <Text style={styles.situationIcon}>{s.icon}</Text>
-              <Text style={[styles.situationLabel, situation === s.key && styles.situationLabelActive]}>
-                {s.label[lang] || s.label.nl}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.sectionLabel}>Persoonlijke situatie</Text>
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>🏠 {t(lang, 'own_home')}</Text>
-            <Switch value={ownHome} onValueChange={setOwnHome} trackColor={{ true: '#154273' }} />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>💑 Fiscaal partner</Text>
-            <Switch value={hasPartner} onValueChange={setHasPartner} trackColor={{ true: '#154273' }} />
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>👶 Kinderen</Text>
-            <Switch value={hasKids} onValueChange={setHasKids} trackColor={{ true: '#154273' }} />
-          </View>
-        </View>
-
-        <Text style={styles.sectionLabel}>Notificaties</Text>
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <View>
-              <Text style={styles.toggleLabel}>🔔 Belastingdeadlines</Text>
-              <Text style={styles.toggleSub}>Herinneringen op basis van uw profiel</Text>
-            </View>
-            <Switch value={notifications} onValueChange={setNotifications} trackColor={{ true: '#154273' }} />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.saveBtn} onPress={saveProfile}>
-          <Text style={styles.saveBtnText}>{t(lang, 'save_profile')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.resetBtn} onPress={resetApp}>
-          <Text style={styles.resetBtnText}>🗑 Reset app</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
-    </SafeAreaView>
-  );
+function Toggle({ on, onToggle }) {
+return (
+<TouchableOpacity onPress={onToggle} activeOpacity={0.8}
+style={{ width:44, height:26, borderRadius:999, backgroundColor:on?Colors.blueDeep:‘rgba(147,197,253,0.3)’, padding:3, justifyContent:‘center’, shadowColor:on?Colors.blueDeep:‘transparent’, shadowOpacity:0.3, shadowRadius:6, elevation:on?3:0 }}>
+<View style={{ width:18, height:18, borderRadius:9, backgroundColor:‘white’, marginLeft:on?18:0, shadowColor:’#000’, shadowOpacity:0.1, shadowRadius:2, elevation:1 }} />
+</TouchableOpacity>
+);
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#EEF2F7' },
-  container: { paddingBottom: 40 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'white', padding: 16,
-    borderBottomWidth: 1, borderBottomColor: '#dde3ed',
-    shadowColor: '#154273', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
-  backBtn: { padding: 4 },
-  backText: { color: '#154273', fontSize: 22, fontWeight: '600' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#154273' },
-  logoBox: {
-    width: 34, height: 34, backgroundColor: '#154273',
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-  },
-  logoText: { fontSize: 16, fontWeight: '800', color: 'white' },
-  userCard: {
-    backgroundColor: '#154273', margin: 16, borderRadius: 14,
-    padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  userName: { fontSize: 18, fontWeight: '700', color: 'white' },
-  userLang: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-  sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#154273',
-    textTransform: 'uppercase', letterSpacing: 1.5,
-    marginHorizontal: 16, marginTop: 20, marginBottom: 10,
-  },
-  situationGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    paddingHorizontal: 16,
-  },
-  situationCard: {
-    width: '47%', backgroundColor: 'white',
-    borderWidth: 2, borderColor: '#dde3ed',
-    borderRadius: 14, padding: 16, alignItems: 'center', gap: 6,
-  },
-  situationCardActive: { borderColor: '#154273', backgroundColor: '#EEF2F7' },
-  situationIcon: { fontSize: 24 },
-  situationLabel: { fontSize: 13, fontWeight: '600', color: '#7a8fa8' },
-  situationLabelActive: { color: '#154273' },
-  toggleCard: {
-    backgroundColor: 'white', marginHorizontal: 16,
-    borderRadius: 14, padding: 4,
-    borderWidth: 1, borderColor: '#dde3ed',
-    shadowColor: '#154273', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  toggleRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', padding: 14,
-  },
-  toggleLabel: { fontSize: 14, color: '#2c3e50', fontWeight: '500' },
-  toggleSub: { fontSize: 11, color: '#a0aec0', marginTop: 2 },
-  divider: { height: 1, backgroundColor: '#EEF2F7', marginHorizontal: 14 },
-  saveBtn: {
-    backgroundColor: '#154273', borderRadius: 14, padding: 18,
-    alignItems: 'center', margin: 16,
-    shadowColor: '#154273', shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
-  },
-  saveBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
-  resetBtn: {
-    borderWidth: 1, borderColor: '#dde3ed',
-    borderRadius: 14, padding: 14,
-    alignItems: 'center', marginHorizontal: 16,
-  },
-  resetBtnText: { color: '#a0aec0', fontSize: 14 },
+function Row({ icon, label, sub, right, onPress, danger }) {
+const Wrap = onPress ? TouchableOpacity : View;
+return (
+<Wrap onPress={onPress} activeOpacity={0.75} style={s.row}>
+<View style={[s.rowIcon, { backgroundColor: danger?Colors.redBg:‘rgba(59,130,246,0.1)’, borderColor: danger?‘rgba(239,68,68,0.2)’:‘rgba(59,130,246,0.15)’ }]}>
+<Text style={{ fontSize:15 }}>{icon}</Text>
+</View>
+<View style={{ flex:1 }}>
+<Text style={[s.rowLabel, danger && { color:Colors.red }]}>{label}</Text>
+{sub && <Text style={s.rowSub}>{sub}</Text>}
+</View>
+{right || (onPress && <Text style={s.rowArrow}>›</Text>)}
+</Wrap>
+);
+}
+
+export default function ProfileScreen({ navigation }) {
+const [userData,   setUserData]   = useState(null);
+const [situation,  setSituation]  = useState(‘particulier’);
+const [ownHome,    setOwnHome]    = useState(false);
+const [hasPartner, setHasPartner] = useState(false);
+const [hasKids,    setHasKids]    = useState(false);
+const [notifs,     setNotifs]     = useState(true);
+const lang = userData?.language || ‘nl’;
+
+useEffect(() => { loadData(); }, []);
+const loadData = async () => {
+const user = await getUserData();
+const profile = await getTaxProfile();
+setUserData(user);
+if (profile) {
+setSituation(profile.situation || ‘particulier’);
+setOwnHome(profile.ownHome || false);
+setHasPartner(profile.hasPartner || false);
+setHasKids(profile.hasKids || false);
+setNotifs(profile.notifications !== false);
+}
+};
+
+const saveProfile = async () => {
+const profile = { situation, ownHome, hasPartner, hasKids, notifications: notifs };
+await saveTaxProfile(profile);
+if (notifs) {
+const granted = await requestPermissions();
+if (granted) await scheduleDeadlineNotifications(profile);
+}
+Alert.alert(‘✓’, t(lang, ‘profile_saved’));
+};
+
+const resetApp = () => {
+Alert.alert(‘Reset’, ‘Weet u zeker dat u alle data wilt verwijderen?’, [
+{ text:‘Annuleren’, style:‘cancel’ },
+{ text:‘Verwijderen’, style:‘destructive’, onPress: async () => { await clearUserData(); navigation.replace(‘Onboarding’); } },
+]);
+};
+
+return (
+<SafeAreaView style={s.safe}>
+{/* Header */}
+<View style={s.header}>
+<TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+<Text style={s.backText}>←</Text>
+</TouchableOpacity>
+<Text style={s.headerTitle}>Profiel</Text>
+<View style={{ width:40 }} />
+</View>
+
+```
+  <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+
+    {/* Avatar block */}
+    <View style={s.avatarBlock}>
+      <View style={s.avatar}>
+        <Text style={s.avatarText}>{userData?.name?.charAt(0)?.toUpperCase() || 'T'}</Text>
+      </View>
+      <Text style={s.avatarName}>{userData?.name || 'Gebruiker'}</Text>
+      <View style={s.planPill}>
+        <Text style={s.planPillText}>PREMIUM PLAN</Text>
+      </View>
+    </View>
+
+    {/* Stats */}
+    <View style={s.statsRow}>
+      {[{ val:'4', lbl:'Inzichten' }, { val:'2/4', lbl:'Taken' }, { val:'€1.840', lbl:'Kans' }].map((stat, i) => (
+        <View key={i} style={[s.statCell, i<2 && s.statCellBorder]}>
+          <Text style={s.statVal}>{stat.val}</Text>
+          <Text style={s.statLbl}>{stat.lbl}</Text>
+        </View>
+      ))}
+    </View>
+
+    {/* Situation */}
+    <Text style={s.sectionLabel}>Uw situatie</Text>
+    <View style={s.situationGrid}>
+      {SITUATIONS.map(sit => (
+        <TouchableOpacity key={sit.key} style={[s.situationBtn, situation===sit.key&&s.situationBtnActive]} onPress={() => setSituation(sit.key)} activeOpacity={0.75}>
+          <Text style={s.situationIcon}>{sit.icon}</Text>
+          <Text style={[s.situationLabel, situation===sit.key&&s.situationLabelActive]}>{sit.label[lang]||sit.label.nl}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+
+    {/* Life situation */}
+    <Text style={s.sectionLabel}>Leefomstandigheden</Text>
+    <View style={s.card}>
+      <Row icon="🏠" label="Eigen woning" sub={ownHome?'Actief':'Niet ingesteld'} right={<Toggle on={ownHome} onToggle={()=>setOwnHome(v=>!v)} />} />
+      <Row icon="💑" label="Fiscaal partner" sub={hasPartner?'Actief':'Niet ingesteld'} right={<Toggle on={hasPartner} onToggle={()=>setHasPartner(v=>!v)} />} />
+      <Row icon="👶" label="Kinderen" sub={hasKids?'Actief':'Niet ingesteld'} right={<Toggle on={hasKids} onToggle={()=>setHasKids(v=>!v)} />} />
+    </View>
+
+    {/* Preferences */}
+    <Text style={s.sectionLabel}>Voorkeuren</Text>
+    <View style={s.card}>
+      <Row icon="◎" label="Notificaties" sub="Deadlines & inzichten" right={<Toggle on={notifs} onToggle={()=>setNotifs(v=>!v)} />} />
+      <Row icon="📅" label="Kalender" onPress={() => navigation.navigate('Calendar')} />
+      <Row icon="📁" label="Archief" onPress={() => navigation.navigate('Favorites')} />
+      <Row icon="🕐" label="Geschiedenis" onPress={() => navigation.navigate('History')} />
+    </View>
+
+    {/* Account */}
+    <Text style={s.sectionLabel}>Account</Text>
+    <View style={s.card}>
+      <Row icon="👑" label="Upgrade plan" sub="Bekijk Premium & Pro" onPress={() => navigation.navigate('Paywall')} />
+      <Row icon="📸" label="Document scanner" onPress={() => navigation.navigate('Scanner')} />
+      <Row icon="📊" label="Jaaroverzicht" onPress={() => navigation.navigate('YearOverview')} />
+      <Row icon="⚡" label="Uitloggen / Reset" danger onPress={resetApp} />
+    </View>
+
+    {/* Save button */}
+    <TouchableOpacity style={s.saveBtn} onPress={saveProfile} activeOpacity={0.85}>
+      <Text style={s.saveBtnText}>Profiel opslaan</Text>
+    </TouchableOpacity>
+
+  </ScrollView>
+</SafeAreaView>
+```
+
+);
+}
+
+const s = StyleSheet.create({
+safe:   { flex:1, backgroundColor:Colors.pageBg },
+header: { flexDirection:‘row’, alignItems:‘center’, justifyContent:‘space-between’, paddingHorizontal:20, paddingVertical:13, borderBottomWidth:1, borderBottomColor:‘rgba(255,255,255,0.65)’, backgroundColor:‘rgba(219,234,254,0.97)’ },
+backBtn:{ width:40, height:36, borderRadius:999, backgroundColor:‘rgba(255,255,255,0.65)’, alignItems:‘center’, justifyContent:‘center’, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’ },
+backText:{ fontSize:18, color:Colors.blueDeep, fontWeight:‘600’ },
+headerTitle:{ fontSize:15, fontWeight:‘700’, color:Colors.textPrimary },
+scroll: { paddingBottom:40 },
+
+avatarBlock: { alignItems:‘center’, paddingTop:28, paddingBottom:20, borderBottomWidth:1, borderBottomColor:‘rgba(147,197,253,0.2)’ },
+avatar: { width:72, height:72, borderRadius:36, backgroundColor:Colors.blueDeep, alignItems:‘center’, justifyContent:‘center’, marginBottom:12, shadowColor:Colors.blueDeep, shadowOpacity:0.35, shadowRadius:20, elevation:8, borderWidth:3, borderColor:‘rgba(255,255,255,0.7)’ },
+avatarText: { fontSize:28, fontWeight:‘300’, color:‘white’ },
+avatarName: { fontSize:22, fontWeight:‘300’, color:Colors.textPrimary, letterSpacing:-0.5, marginBottom:6 },
+planPill:   { backgroundColor:‘rgba(29,78,216,0.08)’, borderRadius:999, paddingHorizontal:14, paddingVertical:4, borderWidth:1, borderColor:‘rgba(29,78,216,0.15)’ },
+planPillText:{ fontSize:10, fontWeight:‘700’, color:Colors.blueDeep, letterSpacing:1 },
+
+statsRow: { flexDirection:‘row’, borderBottomWidth:1, borderBottomColor:‘rgba(147,197,253,0.2)’ },
+statCell: { flex:1, alignItems:‘center’, paddingVertical:16 },
+statCellBorder: { borderRightWidth:1, borderRightColor:‘rgba(147,197,253,0.2)’ },
+statVal: { fontSize:18, fontWeight:‘700’, color:Colors.blueDeep, letterSpacing:-0.5 },
+statLbl: { fontSize:10, color:Colors.textMuted, fontWeight:‘500’, marginTop:2 },
+
+sectionLabel: { fontSize:10, fontWeight:‘700’, color:Colors.textMuted, letterSpacing:1.5, textTransform:‘uppercase’, paddingHorizontal:20, marginTop:22, marginBottom:10 },
+
+situationGrid: { flexDirection:‘row’, flexWrap:‘wrap’, gap:8, paddingHorizontal:20, marginBottom:8 },
+situationBtn:  { flexDirection:‘row’, alignItems:‘center’, gap:6, paddingHorizontal:14, paddingVertical:9, borderRadius:999, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, backgroundColor:‘rgba(255,255,255,0.65)’, shadowColor:Colors.blueDeep, shadowOpacity:0.07, shadowRadius:6, elevation:1 },
+situationBtnActive: { backgroundColor:Colors.blueDeep, borderColor:Colors.borderBlueMid },
+situationIcon:  { fontSize:14 },
+situationLabel: { fontSize:12, color:Colors.textMuted, fontWeight:‘600’ },
+situationLabelActive: { color:‘white’ },
+
+card: { marginHorizontal:20, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:22, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, paddingHorizontal:16, shadowColor:Colors.blueDeep, shadowOpacity:0.08, shadowRadius:12, elevation:2, marginBottom:4 },
+row:  { flexDirection:‘row’, alignItems:‘center’, gap:12, paddingVertical:13, borderBottomWidth:1, borderBottomColor:‘rgba(147,197,253,0.15)’ },
+rowIcon: { width:36, height:36, borderRadius:999, borderWidth:1, alignItems:‘center’, justifyContent:‘center’ },
+rowLabel:{ fontSize:13, fontWeight:‘600’, color:Colors.textPrimary },
+rowSub:  { fontSize:11, color:Colors.textMuted, marginTop:1 },
+rowArrow:{ fontSize:16, color:Colors.bluePale },
+
+saveBtn: { marginHorizontal:20, marginTop:22, backgroundColor:Colors.blueDeep, borderRadius:999, paddingVertical:14, alignItems:‘center’, shadowColor:Colors.blueDeep, shadowOpacity:0.35, shadowRadius:16, elevation:6 },
+saveBtnText: { color:‘white’, fontSize:15, fontWeight:‘700’ },
 });
