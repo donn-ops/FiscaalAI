@@ -7,6 +7,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getUserData, getTaxProfile } from '../utils/storage';
 import { QUICK_QUESTIONS } from '../constants/prompts';
 import { t } from '../constants/translations';
+import { getDailyUsage } from '../utils/freemium';
+import { isPremium, isPro } from '../utils/purchases';
 
 const { width } = Dimensions.get('window');
 
@@ -48,6 +50,9 @@ export default function HomeScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
   const [taxProfile, setTaxProfile] = useState(null);
   const [tip, setTip] = useState('');
+  const [dailyUsage, setDailyUsage] = useState(0);
+  const [hasPremium, setHasPremium] = useState(false);
+  const [hasPro, setHasPro] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,14 +63,23 @@ export default function HomeScreen({ navigation }) {
   const loadData = async () => {
     const user = await getUserData();
     const profile = await getTaxProfile();
+    const usage = await getDailyUsage();
+    const premium = await isPremium();
+    const pro = await isPro();
+
     setUserData(user);
     setTaxProfile(profile);
+    setDailyUsage(usage);
+    setHasPremium(premium);
+    setHasPro(pro);
+
     const lang = user?.language || 'nl';
     const tips = TIPS[lang] || TIPS.nl;
     setTip(tips[Math.floor(Math.random() * tips.length)]);
   };
 
   const lang = userData?.language || 'nl';
+  const isUnlimited = hasPremium || hasPro;
 
   const startChat = (question = null) => {
     navigation.navigate('Chat', { initialQuestion: question, userData });
@@ -78,7 +92,7 @@ export default function HomeScreen({ navigation }) {
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <View>
+            <View style={styles.greetingBlock}>
               <Text style={styles.greetingTime}>{getGreeting(lang)}</Text>
               <Text style={styles.greetingName}>
                 {userData?.name ? `${t(lang, 'hello')}, ${userData.name} 👋` : 'Welkom bij Taxly 👋'}
@@ -88,18 +102,22 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Paywall')}>
                 <Text style={styles.iconBtnText}>👑</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Scanner')}>
+                <Text style={styles.iconBtnText}>📸</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Calendar')}>
+                <Text style={styles.iconBtnText}>📅</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
                 <Text style={styles.iconBtnText}>👤</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('History')}>
                 <Text style={styles.iconBtnText}>🕐</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Favorites')}>
-                <Text style={styles.iconBtnText}>⭐</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
+          {/* Profiel badge */}
           {taxProfile && (
             <View style={styles.profileBadge}>
               <Text style={styles.profileBadgeText}>
@@ -113,6 +131,34 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
 
+          {/* Freemium balk */}
+          {!isUnlimited && (
+            <TouchableOpacity
+              style={styles.usageBar}
+              onPress={() => navigation.navigate('Paywall')}
+            >
+              <View style={styles.usageBarLeft}>
+                <Text style={styles.usageBarText}>
+                  {dailyUsage}/5 vragen gebruikt vandaag
+                </Text>
+                <View style={styles.usageBarTrack}>
+                  <View style={[styles.usageBarFill, { width: `${(dailyUsage / 5) * 100}%` }]} />
+                </View>
+              </View>
+              <Text style={styles.usageBarUpgrade}>Upgrade →</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Premium badge */}
+          {isUnlimited && (
+            <View style={styles.premiumBadge}>
+              <Text style={styles.premiumBadgeText}>
+                {hasPro ? '👑 Pro' : '⭐ Premium'} · Onbeperkt
+              </Text>
+            </View>
+          )}
+
+          {/* Tip */}
           <View style={styles.tipCard}>
             <Text style={styles.tipIcon}>💡</Text>
             <View style={styles.tipContent}>
@@ -121,6 +167,43 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </View>
+
+        {/* Pro snelkoppelingen */}
+        {hasPro && (
+          <>
+            <Text style={styles.sectionTitle}>Pro functies</Text>
+            <View style={styles.proRow}>
+              <TouchableOpacity
+                style={styles.proCard}
+                onPress={() => navigation.navigate('Scanner')}
+              >
+                <Text style={styles.proCardIcon}>📸</Text>
+                <Text style={styles.proCardLabel}>Scanner</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.proCard}
+                onPress={() => navigation.navigate('YearOverview')}
+              >
+                <Text style={styles.proCardIcon}>📊</Text>
+                <Text style={styles.proCardLabel}>Jaaroverzicht</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.proCard}
+                onPress={() => navigation.navigate('Calendar')}
+              >
+                <Text style={styles.proCardIcon}>📅</Text>
+                <Text style={styles.proCardLabel}>Kalender</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.proCard}
+                onPress={() => navigation.navigate('Favorites')}
+              >
+                <Text style={styles.proCardIcon}>📁</Text>
+                <Text style={styles.proCardLabel}>Archief</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {/* QUICK QUESTIONS */}
         <Text style={styles.sectionTitle}>{t(lang, 'quick_start')}</Text>
@@ -152,6 +235,7 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#EEF2F7' },
   container: { paddingBottom: 40 },
+
   header: {
     backgroundColor: 'white', padding: 20, marginBottom: 20,
     borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
@@ -161,15 +245,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 14,
   },
+  greetingBlock: { flex: 1 },
   greetingTime: { fontSize: 12, color: '#7a8fa8', textTransform: 'uppercase', letterSpacing: 1 },
-  greetingName: { fontSize: 20, fontWeight: '800', color: '#154273', marginTop: 2 },
-  headerRight: { flexDirection: 'row', gap: 6 },
+  greetingName: { fontSize: 18, fontWeight: '800', color: '#154273', marginTop: 2 },
+
+  headerRight: { flexDirection: 'row', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 160 },
   iconBtn: {
-    width: 34, height: 34, backgroundColor: '#EEF2F7',
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, backgroundColor: '#EEF2F7',
+    borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#dde3ed',
   },
-  iconBtnText: { fontSize: 15 },
+  iconBtnText: { fontSize: 14 },
+
   profileBadge: {
     backgroundColor: '#EEF2F7', borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 6,
@@ -177,6 +264,33 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#dde3ed',
   },
   profileBadgeText: { fontSize: 12, color: '#154273', fontWeight: '600' },
+
+  usageBar: {
+    backgroundColor: '#EEF2F7', borderRadius: 12,
+    padding: 12, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: '#dde3ed',
+  },
+  usageBarLeft: { flex: 1 },
+  usageBarText: { fontSize: 11, color: '#7a8fa8', marginBottom: 6 },
+  usageBarTrack: {
+    height: 4, backgroundColor: '#dde3ed',
+    borderRadius: 2, overflow: 'hidden',
+  },
+  usageBarFill: {
+    height: 4, backgroundColor: '#154273',
+    borderRadius: 2,
+  },
+  usageBarUpgrade: { fontSize: 12, fontWeight: '700', color: '#154273', marginLeft: 12 },
+
+  premiumBadge: {
+    backgroundColor: 'rgba(21,66,115,0.08)',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
+    alignSelf: 'flex-start', marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(21,66,115,0.2)',
+  },
+  premiumBadgeText: { fontSize: 12, color: '#154273', fontWeight: '700' },
+
   tipCard: {
     backgroundColor: '#154273', borderRadius: 14,
     padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start',
@@ -188,11 +302,27 @@ const styles = StyleSheet.create({
     marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8,
   },
   tipText: { fontSize: 13, color: 'white', lineHeight: 19 },
+
   sectionTitle: {
     fontSize: 12, fontWeight: '700', color: '#154273',
     textTransform: 'uppercase', letterSpacing: 1.5,
     marginBottom: 12, paddingHorizontal: 20,
   },
+
+  proRow: {
+    flexDirection: 'row', gap: 10,
+    paddingHorizontal: 20, marginBottom: 24,
+  },
+  proCard: {
+    flex: 1, backgroundColor: 'white',
+    borderRadius: 12, padding: 12,
+    alignItems: 'center', gap: 4,
+    borderWidth: 1, borderColor: '#dde3ed',
+    shadowColor: '#154273', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  proCardIcon: { fontSize: 22 },
+  proCardLabel: { fontSize: 10, fontWeight: '600', color: '#154273', textAlign: 'center' },
+
   grid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     marginBottom: 24, paddingHorizontal: 20,
@@ -204,6 +334,7 @@ const styles = StyleSheet.create({
   },
   quickIcon: { fontSize: 24, marginBottom: 8 },
   quickLabel: { color: '#2c3e50', fontSize: 13, fontWeight: '500' },
+
   ctaButton: {
     backgroundColor: '#154273', borderRadius: 14, padding: 18,
     alignItems: 'center', marginHorizontal: 20, marginBottom: 20,
