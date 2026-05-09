@@ -32,11 +32,18 @@ export default function ChatScreen({ navigation, route }) {
         body: JSON.stringify({ messages: newMessages }),
       });
       const data = await response.json();
+      console.log('API response:', JSON.stringify(data));
       if (!response.ok) throw new Error(data.error?.message || 'API fout');
-      const assistantText = data.content
-        .filter(b => b.type === 'text')
-        .map(b => b.text)
-        .join('\n');
+
+      // Ondersteun meerdere response-formaten (Claude, OpenAI, custom)
+      const assistantText =
+        data.content?.filter(b => b.type === 'text').map(b => b.text).join('\n') ||
+        data.message ||
+        data.text ||
+        data.response ||
+        data.choices?.[0]?.message?.content ||
+        null;
+
       if (!assistantText) throw new Error('Geen antwoord ontvangen');
       setMessages([...newMessages, { role: 'assistant', content: assistantText }]);
     } catch (err) {
@@ -152,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff8c00', borderRadius: 12,
     width: 46, height: 46, alignItems: 'center', justifyContent: 'center',
   },
-  sendBtnDisabled: { backgroundColor: 'rgba(255,165,0,0.15)' },
+  sendBtnDisabled: { backgroundColor: 'rgba(255,140,0,0.15)' },
   sendIcon: { color: '#0a1628', fontSize: 20, fontWeight: 'bold' },
   footerDisclaimer: {
     color: '#3a2a1a', fontSize: 10, textAlign: 'center',
