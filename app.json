@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "FiscaalAI",
+    "slug": "fiscaalai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": { "backgroundColor": "#0a1628" },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "nl.fiscaalai.app"
+    }
+  }
+}
