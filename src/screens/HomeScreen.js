@@ -85,6 +85,9 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
             <View style={styles.headerRight}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Paywall')}>
+                <Text style={styles.iconBtnText}>👑</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
                 <Text style={styles.iconBtnText}>👤</Text>
               </TouchableOpacity>
@@ -160,13 +163,13 @@ const styles = StyleSheet.create({
   },
   greetingTime: { fontSize: 12, color: '#7a8fa8', textTransform: 'uppercase', letterSpacing: 1 },
   greetingName: { fontSize: 20, fontWeight: '800', color: '#154273', marginTop: 2 },
-  headerRight: { flexDirection: 'row', gap: 8 },
+  headerRight: { flexDirection: 'row', gap: 6 },
   iconBtn: {
-    width: 36, height: 36, backgroundColor: '#EEF2F7',
+    width: 34, height: 34, backgroundColor: '#EEF2F7',
     borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#dde3ed',
   },
-  iconBtnText: { fontSize: 16 },
+  iconBtnText: { fontSize: 15 },
   profileBadge: {
     backgroundColor: '#EEF2F7', borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 6,
@@ -180,7 +183,10 @@ const styles = StyleSheet.create({
   },
   tipIcon: { fontSize: 20, marginTop: 1 },
   tipContent: { flex: 1 },
-  tipTitle: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700', marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8 },
+  tipTitle: {
+    fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700',
+    marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8,
+  },
   tipText: { fontSize: 13, color: 'white', lineHeight: 19 },
   sectionTitle: {
     fontSize: 12, fontWeight: '700', color: '#154273',
