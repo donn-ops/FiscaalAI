@@ -12,6 +12,9 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import PaywallScreen from './src/screens/PaywallScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
+import ScannerScreen from './src/screens/ScannerScreen';
+import YearOverviewScreen from './src/screens/YearOverviewScreen';
 
 const Stack = createStackNavigator();
 
@@ -44,6 +47,9 @@ export default function App() {
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Favorites" component={FavoritesScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} />
+        <Stack.Screen name="Scanner" component={ScannerScreen} />
+        <Stack.Screen name="YearOverview" component={YearOverviewScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
