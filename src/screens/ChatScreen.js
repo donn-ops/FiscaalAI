@@ -5,7 +5,7 @@ import {
   Platform, ActivityIndicator, Alert
 } from 'react-native';
 
-const API_URL = 'https://JOUW-PROJECT.vercel.app/api/chat';
+const API_URL = 'https://fiscaal-ai.vercel.app';
 
 export default function ChatScreen({ navigation, route }) {
   const [messages, setMessages] = useState([]);
