@@ -1,348 +1,268 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useRef } from ‘react’;
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { getUserData, getTaxProfile } from '../utils/storage';
-import { QUICK_QUESTIONS } from '../constants/prompts';
-import { t } from '../constants/translations';
-import { getDailyUsage } from '../utils/freemium';
-import { isPremium, isPro } from '../utils/purchases';
+View, Text, TouchableOpacity, ScrollView,
+StyleSheet, Animated, Dimensions,
+} from ‘react-native’;
+import { SafeAreaView } from ‘react-native-safe-area-context’;
+import { useState, useEffect } from ‘react’;
+import { useFocusEffect } from ‘@react-navigation/native’;
+import { getUserData, getTaxProfile } from ‘../utils/storage’;
+import { QUICK_QUESTIONS } from ‘../constants/prompts’;
+import { t } from ‘../constants/translations’;
+import { getDailyUsage } from ‘../utils/freemium’;
+import { isPremium, isPro } from ‘../utils/purchases’;
+import { Colors, Shadows, Radii } from ‘../constants/theme’;
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get(‘window’);
 
 const getGreeting = (lang) => {
-  const hour = new Date().getHours();
-  if (hour < 12) return t(lang, 'greeting_morning');
-  if (hour < 18) return t(lang, 'greeting_afternoon');
-  return t(lang, 'greeting_evening');
+const hour = new Date().getHours();
+if (hour < 12) return t(lang, ‘greeting_morning’);
+if (hour < 18) return t(lang, ‘greeting_afternoon’);
+return t(lang, ‘greeting_evening’);
 };
 
-const TIPS = {
-  nl: [
-    'Aangifte deadline voor particulieren is 1 mei. Heeft u alles op orde?',
-    'ZZP\'ers mogen zakelijke kosten aftrekken. Denk aan laptop, telefoon en reiskosten.',
-    'Box 3 vermogen boven €57.000 wordt belast. Check uw situatie.',
-    'De zelfstandigenaftrek bedraagt €5.030 in 2025.',
-  ],
-  en: [
-    'Tax return deadline is May 1st. Do you have everything ready?',
-    'Freelancers can deduct business expenses. Think laptop, phone and travel costs.',
-    'Box 3 assets above €57,000 are taxed. Check your situation.',
-    'The self-employment deduction is €5,030 in 2025.',
-  ],
-  de: [
-    'Steuererklärung Frist ist der 1. Mai. Haben Sie alles bereit?',
-    'Freiberufler können Geschäftsausgaben abziehen.',
-    'Vermögen über €57.000 in Box 3 wird besteuert.',
-    'Der Selbständigenabzug beträgt €5.030 im Jahr 2025.',
-  ],
-  fr: [
-    'La date limite de déclaration fiscale est le 1er mai.',
-    'Les indépendants peuvent déduire les frais professionnels.',
-    'Les actifs Box 3 supérieurs à 57 000 € sont imposés.',
-    'La déduction pour indépendants est de 5 030 € en 2025.',
-  ],
-};
+const INSIGHTS = [
+{ icon:‘◈’, body:‘U komt mogelijk in aanmerking voor €1.840 hypotheekaftrek.’,  tag:‘Kans’,  tc:’#2563eb’ },
+{ icon:‘⚡’, body:‘Box 3 vermogensopgave moet vóór 1 mei ingediend worden.’,      tag:‘Actie’, tc:’#f59e0b’ },
+{ icon:‘✦’,  body:‘€3.200 zelfstandigenaftrek staat nog open dit jaar.’,          tag:‘Tip’,   tc:’#10b981’ },
+];
+
+function OrbButton({ onPress, active }) {
+const anim = useRef(new Animated.Value(0)).current;
+const ring1 = useRef(new Animated.Value(0)).current;
+useEffect(() => {
+Animated.loop(Animated.sequence([
+Animated.timing(anim, { toValue:-7, duration:2000, useNativeDriver:true }),
+Animated.timing(anim, { toValue:0,  duration:2000, useNativeDriver:true }),
+])).start();
+}, []);
+useEffect(() => {
+if (active) {
+Animated.loop(Animated.sequence([
+Animated.timing(ring1, { toValue:1, duration:1500, useNativeDriver:true }),
+Animated.timing(ring1, { toValue:0, duration:0,    useNativeDriver:true }),
+])).start();
+} else { ring1.setValue(0); }
+}, [active]);
+
+const ringScale = ring1.interpolate({ inputRange:[0,1], outputRange:[1,1.8] });
+const ringOp    = ring1.interpolate({ inputRange:[0,0.5,1], outputRange:[0.6,0.3,0] });
+
+return (
+<TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ alignItems:‘center’ }}>
+{active && (
+<Animated.View style={{ position:‘absolute’, width:130, height:130, borderRadius:65, borderWidth:1, borderColor:‘rgba(59,130,246,0.4)’, transform:[{scale:ringScale}], opacity:ringOp }} />
+)}
+<Animated.View style={{ transform:[{translateY:anim}] }}>
+<View style={[styles.orb, active && styles.orbActive]}>
+<View style={styles.orbInner} />
+</View>
+</Animated.View>
+<Text style={[styles.orbLabel, active && styles.orbLabelActive]}>
+{active ? ‘Ik luister…’ : ‘Tik om te spreken’}
+</Text>
+</TouchableOpacity>
+);
+}
 
 export default function HomeScreen({ navigation }) {
-  const [userData, setUserData] = useState(null);
-  const [taxProfile, setTaxProfile] = useState(null);
-  const [tip, setTip] = useState('');
-  const [dailyUsage, setDailyUsage] = useState(0);
-  const [hasPremium, setHasPremium] = useState(false);
-  const [hasPro, setHasPro] = useState(false);
+const [userData,   setUserData]   = useState(null);
+const [taxProfile, setTaxProfile] = useState(null);
+const [dailyUsage, setDailyUsage] = useState(0);
+const [hasPremium, setHasPremium] = useState(false);
+const [hasPro,     setHasPro]     = useState(false);
+const [listening,  setListening]  = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+useFocusEffect(useCallback(() => { loadData(); }, []));
 
-  const loadData = async () => {
-    const user = await getUserData();
-    const profile = await getTaxProfile();
-    const usage = await getDailyUsage();
-    const premium = await isPremium();
-    const pro = await isPro();
+const loadData = async () => {
+const [user, profile, usage, premium, pro] = await Promise.all([
+getUserData(), getTaxProfile(), getDailyUsage(), isPremium(), isPro(),
+]);
+setUserData(user); setTaxProfile(profile);
+setDailyUsage(usage); setHasPremium(premium); setHasPro(pro);
+};
 
-    setUserData(user);
-    setTaxProfile(profile);
-    setDailyUsage(usage);
-    setHasPremium(premium);
-    setHasPro(pro);
+const lang = userData?.language || ‘nl’;
+const isUnlimited = hasPremium || hasPro;
+const doneTasks = 2; const totalTasks = 4; // derive from real data later
 
-    const lang = user?.language || 'nl';
-    const tips = TIPS[lang] || TIPS.nl;
-    setTip(tips[Math.floor(Math.random() * tips.length)]);
-  };
+const startChat = (q = null) => navigation.navigate(‘Chat’, { initialQuestion: q, userData });
 
-  const lang = userData?.language || 'nl';
-  const isUnlimited = hasPremium || hasPro;
+const triggerListen = () => {
+setListening(true);
+setTimeout(() => setListening(false), 3000);
+};
 
-  const startChat = (question = null) => {
-    navigation.navigate('Chat', { initialQuestion: question, userData });
-  };
+return (
+<SafeAreaView style={styles.safe}>
+<ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+```
+    {/* ── Greeting ── */}
+    <View style={styles.greeting}>
+      <Text style={styles.greetSmall}>{getGreeting(lang)}</Text>
+      <Text style={styles.greetName}>
+        {userData?.name || 'Welkom'}
+      </Text>
+      <View style={styles.statusPill}>
+        <View style={styles.statusDot} />
+        <Text style={styles.statusPillText}>Financiën onder controle</Text>
+      </View>
+    </View>
 
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View style={styles.greetingBlock}>
-              <Text style={styles.greetingTime}>{getGreeting(lang)}</Text>
-              <Text style={styles.greetingName}>
-                {userData?.name ? `${t(lang, 'hello')}, ${userData.name} 👋` : 'Welkom bij Taxly 👋'}
-              </Text>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Paywall')}>
-                <Text style={styles.iconBtnText}>👑</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Scanner')}>
-                <Text style={styles.iconBtnText}>📸</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Calendar')}>
-                <Text style={styles.iconBtnText}>📅</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
-                <Text style={styles.iconBtnText}>👤</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('History')}>
-                <Text style={styles.iconBtnText}>🕐</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+    {/* ── Orb ── */}
+    <View style={styles.orbSection}>
+      <OrbButton onPress={triggerListen} active={listening} />
+    </View>
 
-          {/* Profiel badge */}
-          {taxProfile && (
-            <View style={styles.profileBadge}>
-              <Text style={styles.profileBadgeText}>
-                {taxProfile.situation === 'zzp' ? '💼 ZZP' :
-                 taxProfile.situation === 'mkb' ? '🏢 MKB' :
-                 taxProfile.situation === 'dga' ? '👔 DGA' : '👤 Particulier'}
-                {taxProfile.ownHome ? ' · 🏠' : ''}
-                {taxProfile.hasPartner ? ' · 💑' : ''}
-                {taxProfile.hasKids ? ' · 👶' : ''}
-              </Text>
-            </View>
-          )}
-
-          {/* Freemium balk */}
-          {!isUnlimited && (
-            <TouchableOpacity
-              style={styles.usageBar}
-              onPress={() => navigation.navigate('Paywall')}
-            >
-              <View style={styles.usageBarLeft}>
-                <Text style={styles.usageBarText}>
-                  {dailyUsage}/5 vragen gebruikt vandaag
-                </Text>
-                <View style={styles.usageBarTrack}>
-                  <View style={[styles.usageBarFill, { width: `${(dailyUsage / 5) * 100}%` }]} />
-                </View>
-              </View>
-              <Text style={styles.usageBarUpgrade}>Upgrade →</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Premium badge */}
-          {isUnlimited && (
-            <View style={styles.premiumBadge}>
-              <Text style={styles.premiumBadgeText}>
-                {hasPro ? '👑 Pro' : '⭐ Premium'} · Onbeperkt
-              </Text>
-            </View>
-          )}
-
-          {/* Tip */}
-          <View style={styles.tipCard}>
-            <Text style={styles.tipIcon}>💡</Text>
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>{t(lang, 'tip_of_day')}</Text>
-              <Text style={styles.tipText}>{tip}</Text>
-            </View>
+    {/* ── Freemium bar ── */}
+    {!isUnlimited && (
+      <TouchableOpacity style={styles.usageCard} onPress={() => navigation.navigate('Paywall')} activeOpacity={0.8}>
+        <View style={{ flex:1 }}>
+          <Text style={styles.usageText}>{dailyUsage}/5 vragen gebruikt vandaag</Text>
+          <View style={styles.usageTrack}>
+            <View style={[styles.usageFill, { width:`${(dailyUsage/5)*100}%` }]} />
           </View>
         </View>
+        <Text style={styles.upgradeText}>Upgrade →</Text>
+      </TouchableOpacity>
+    )}
+    {isUnlimited && (
+      <View style={styles.premiumPill}>
+        <Text style={styles.premiumText}>{hasPro?'👑 Pro':'⭐ Premium'} · Onbeperkt</Text>
+      </View>
+    )}
 
-        {/* Pro snelkoppelingen */}
-        {hasPro && (
-          <>
-            <Text style={styles.sectionTitle}>Pro functies</Text>
-            <View style={styles.proRow}>
-              <TouchableOpacity
-                style={styles.proCard}
-                onPress={() => navigation.navigate('Scanner')}
-              >
-                <Text style={styles.proCardIcon}>📸</Text>
-                <Text style={styles.proCardLabel}>Scanner</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.proCard}
-                onPress={() => navigation.navigate('YearOverview')}
-              >
-                <Text style={styles.proCardIcon}>📊</Text>
-                <Text style={styles.proCardLabel}>Jaaroverzicht</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.proCard}
-                onPress={() => navigation.navigate('Calendar')}
-              >
-                <Text style={styles.proCardIcon}>📅</Text>
-                <Text style={styles.proCardLabel}>Kalender</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.proCard}
-                onPress={() => navigation.navigate('Favorites')}
-              >
-                <Text style={styles.proCardIcon}>📁</Text>
-                <Text style={styles.proCardLabel}>Archief</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+    {/* ── Progress card ── */}
+    <View style={styles.card}>
+      <View style={styles.cardRow}>
+        <Text style={styles.cardTitle}>Voortgang belastingen</Text>
+        <Text style={styles.cardScore}>{doneTasks}/{totalTasks}</Text>
+      </View>
+      <View style={styles.progressBg}>
+        <View style={[styles.progressFill, { width:`${(doneTasks/totalTasks)*100}%` }]} />
+      </View>
+      <View style={styles.taskChips}>
+        {['Jaaropgave','Zorgtoeslag','Box 3','Hypotheek'].map((task,i) => (
+          <View key={i} style={[styles.taskChip, i<2 && styles.taskChipDone]}>
+            <Text style={[styles.taskChipIcon, i<2 && styles.taskChipIconDone]}>{i<2?'✓':'○'}</Text>
+            <Text style={[styles.taskChipText, i<2 && styles.taskChipTextDone]}>{task}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
 
-        {/* QUICK QUESTIONS */}
-        <Text style={styles.sectionTitle}>{t(lang, 'quick_start')}</Text>
-        <View style={styles.grid}>
-          {QUICK_QUESTIONS.map((q) => (
-            <TouchableOpacity
-              key={q.label}
-              style={styles.quickCard}
-              onPress={() => startChat(q.question)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.quickIcon}>{q.icon}</Text>
-              <Text style={styles.quickLabel}>{q.label}</Text>
-            </TouchableOpacity>
-          ))}
+    {/* ── AI Insights ── */}
+    <View style={styles.section}>
+      {INSIGHTS.map((ins,i) => (
+        <View key={i} style={styles.chip}>
+          <Text style={[styles.chipIcon, { color:ins.tc }]}>{ins.icon}</Text>
+          <Text style={styles.chipBody}>{ins.body}</Text>
+          <View style={[styles.chipTag, { backgroundColor:`${ins.tc}15`, borderColor:`${ins.tc}28` }]}>
+            <Text style={[styles.chipTagText, { color:ins.tc }]}>{ins.tag}</Text>
+          </View>
         </View>
+      ))}
+    </View>
 
-        <TouchableOpacity style={styles.ctaButton} onPress={() => startChat()} activeOpacity={0.85}>
-          <Text style={styles.ctaText}>{t(lang, 'own_question')}</Text>
+    {/* ── Action grid ── */}
+    <View style={styles.grid}>
+      <TouchableOpacity style={styles.btnPrimary} onPress={() => startChat()} activeOpacity={0.85}>
+        <Text style={styles.btnPrimaryText}>⬡  Vraag stellen</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.btnSec} onPress={() => navigation.navigate('Profile')} activeOpacity={0.8}>
+        <Text style={styles.btnSecText}>✦  Inzichten</Text>
+      </TouchableOpacity>
+      {QUICK_QUESTIONS.slice(0,4).map((q) => (
+        <TouchableOpacity key={q.label} style={styles.quickCard} onPress={() => startChat(q.question)} activeOpacity={0.75}>
+          <Text style={styles.quickIcon}>{q.icon}</Text>
+          <Text style={styles.quickLabel}>{q.label}</Text>
         </TouchableOpacity>
+      ))}
+    </View>
 
-        <Text style={styles.disclaimer}>{t(lang, 'disclaimer')}</Text>
+    {/* Pro shortcuts */}
+    {hasPro && (
+      <View style={styles.proRow}>
+        {[{icon:'📸',label:'Scanner',screen:'Scanner'},{icon:'📊',label:'Overzicht',screen:'YearOverview'},{icon:'📅',label:'Kalender',screen:'Calendar'},{icon:'📁',label:'Archief',screen:'Favorites'}].map(p=>(
+          <TouchableOpacity key={p.screen} style={styles.proCard} onPress={()=>navigation.navigate(p.screen)} activeOpacity={0.75}>
+            <Text style={styles.proIcon}>{p.icon}</Text>
+            <Text style={styles.proLabel}>{p.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
 
-      </ScrollView>
-    </SafeAreaView>
-  );
+    <Text style={styles.disclaimer}>{t(lang,'disclaimer')}</Text>
+  </ScrollView>
+</SafeAreaView>
+```
+
+);
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#EEF2F7' },
-  container: { paddingBottom: 40 },
+safe:   { flex:1, backgroundColor:Colors.pageBg },
+scroll: { paddingBottom:40 },
 
-  header: {
-    backgroundColor: 'white', padding: 20, marginBottom: 20,
-    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
-    shadowColor: '#154273', shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
-  },
-  headerRow: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    justifyContent: 'space-between', marginBottom: 14,
-  },
-  greetingBlock: { flex: 1 },
-  greetingTime: { fontSize: 12, color: '#7a8fa8', textTransform: 'uppercase', letterSpacing: 1 },
-  greetingName: { fontSize: 18, fontWeight: '800', color: '#154273', marginTop: 2 },
+greeting: { alignItems:‘center’, paddingTop:20, paddingBottom:18, paddingHorizontal:24 },
+greetSmall: { fontSize:11, color:Colors.blueLight, letterSpacing:2.5, textTransform:‘uppercase’, fontWeight:‘700’, marginBottom:5 },
+greetName:  { fontSize:38, fontWeight:‘200’, color:Colors.textPrimary, letterSpacing:-1.5, lineHeight:42, marginBottom:12 },
+statusPill: { flexDirection:‘row’, alignItems:‘center’, gap:7, backgroundColor:‘rgba(255,255,255,0.6)’, borderRadius:999, paddingVertical:6, paddingHorizontal:16, borderWidth:1, borderColor:‘rgba(16,185,129,0.25)’ },
+statusDot:  { width:7, height:7, borderRadius:999, backgroundColor:Colors.green, shadowColor:Colors.green, shadowOpacity:0.8, shadowRadius:4, elevation:2 },
+statusPillText: { fontSize:12, color:Colors.greenText, fontWeight:‘600’ },
 
-  headerRight: { flexDirection: 'row', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 160 },
-  iconBtn: {
-    width: 32, height: 32, backgroundColor: '#EEF2F7',
-    borderRadius: 8, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#dde3ed',
-  },
-  iconBtnText: { fontSize: 14 },
+orbSection: { alignItems:‘center’, marginBottom:18 },
+orb: { width:126, height:126, borderRadius:63, backgroundColor:Colors.blueDeep, alignItems:‘center’, justifyContent:‘center’, borderWidth:2, borderColor:‘rgba(255,255,255,0.65)’, shadowColor:Colors.blueDeep, shadowOpacity:0.28, shadowRadius:28, shadowOffset:{width:0,height:8}, elevation:10, overflow:‘hidden’ },
+orbActive: { borderColor:‘rgba(255,255,255,1)’, shadowOpacity:0.45 },
+orbInner:  { width:56, height:56, borderRadius:28, backgroundColor:‘rgba(191,219,254,0.75)’ },
+orbLabel:  { marginTop:11, fontSize:11, letterSpacing:2.2, textTransform:‘uppercase’, fontWeight:‘600’, color:Colors.bluePale },
+orbLabelActive: { color:Colors.blueDeep },
 
-  profileBadge: {
-    backgroundColor: '#EEF2F7', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 6,
-    alignSelf: 'flex-start', marginBottom: 12,
-    borderWidth: 1, borderColor: '#dde3ed',
-  },
-  profileBadgeText: { fontSize: 12, color: '#154273', fontWeight: '600' },
+usageCard: { flexDirection:‘row’, alignItems:‘center’, marginHorizontal:20, marginBottom:14, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:999, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, padding:14, shadowColor:Colors.blueDeep, shadowOpacity:0.07, shadowRadius:8, elevation:2 },
+usageText: { fontSize:11, color:Colors.textMuted, marginBottom:6 },
+usageTrack:{ height:4, backgroundColor:‘rgba(147,197,253,0.3)’, borderRadius:999, overflow:‘hidden’ },
+usageFill: { height:4, backgroundColor:Colors.blueDeep, borderRadius:999 },
+upgradeText:{ fontSize:12, fontWeight:‘700’, color:Colors.blueDeep, marginLeft:12 },
+premiumPill:{ alignSelf:‘center’, backgroundColor:‘rgba(29,78,216,0.08)’, borderRadius:999, paddingHorizontal:16, paddingVertical:6, marginBottom:14, borderWidth:1, borderColor:‘rgba(29,78,216,0.18)’ },
+premiumText:{ fontSize:12, color:Colors.blueDeep, fontWeight:‘700’ },
 
-  usageBar: {
-    backgroundColor: '#EEF2F7', borderRadius: 12,
-    padding: 12, marginBottom: 12,
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#dde3ed',
-  },
-  usageBarLeft: { flex: 1 },
-  usageBarText: { fontSize: 11, color: '#7a8fa8', marginBottom: 6 },
-  usageBarTrack: {
-    height: 4, backgroundColor: '#dde3ed',
-    borderRadius: 2, overflow: 'hidden',
-  },
-  usageBarFill: {
-    height: 4, backgroundColor: '#154273',
-    borderRadius: 2,
-  },
-  usageBarUpgrade: { fontSize: 12, fontWeight: '700', color: '#154273', marginLeft: 12 },
+card: { marginHorizontal:20, marginBottom:16, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:22, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, padding:16, shadowColor:Colors.blueDeep, shadowOpacity:0.1, shadowRadius:16, elevation:3 },
+cardRow:  { flexDirection:‘row’, justifyContent:‘space-between’, alignItems:‘center’, marginBottom:10 },
+cardTitle:{ fontSize:13, fontWeight:‘700’, color:Colors.textPrimary },
+cardScore:{ fontSize:12, fontWeight:‘700’, color:Colors.blueDeep },
+progressBg:  { height:5, backgroundColor:‘rgba(147,197,253,0.3)’, borderRadius:999, overflow:‘hidden’, marginBottom:10 },
+progressFill:{ height:5, backgroundColor:Colors.blueDeep, borderRadius:999 },
+taskChips: { flexDirection:‘row’, flexWrap:‘wrap’, gap:6 },
+taskChip:  { flexDirection:‘row’, alignItems:‘center’, gap:4, backgroundColor:‘rgba(147,197,253,0.15)’, borderRadius:999, paddingVertical:4, paddingHorizontal:10, borderWidth:1, borderColor:‘rgba(147,197,253,0.3)’ },
+taskChipDone: { backgroundColor:‘rgba(16,185,129,0.1)’, borderColor:‘rgba(16,185,129,0.25)’ },
+taskChipIcon: { fontSize:9, color:Colors.bluePale },
+taskChipIconDone: { color:Colors.green },
+taskChipText: { fontSize:10, color:Colors.textMuted, fontWeight:‘500’ },
+taskChipTextDone: { color:Colors.greenText },
 
-  premiumBadge: {
-    backgroundColor: 'rgba(21,66,115,0.08)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
-    alignSelf: 'flex-start', marginBottom: 12,
-    borderWidth: 1, borderColor: 'rgba(21,66,115,0.2)',
-  },
-  premiumBadgeText: { fontSize: 12, color: '#154273', fontWeight: '700' },
+section: { paddingHorizontal:20, marginBottom:16, gap:8, flexDirection:‘column’ },
+chip:    { flexDirection:‘row’, alignItems:‘center’, gap:10, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:999, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, paddingVertical:10, paddingHorizontal:16, shadowColor:Colors.blueDeep, shadowOpacity:0.07, shadowRadius:8, elevation:1 },
+chipIcon:{ fontSize:13 },
+chipBody:{ flex:1, fontSize:12, color:Colors.textSecond, lineHeight:18 },
+chipTag: { borderRadius:999, paddingVertical:2, paddingHorizontal:9, borderWidth:1 },
+chipTagText:{ fontSize:9, fontWeight:‘700’, letterSpacing:0.5 },
 
-  tipCard: {
-    backgroundColor: '#154273', borderRadius: 14,
-    padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-  },
-  tipIcon: { fontSize: 20, marginTop: 1 },
-  tipContent: { flex: 1 },
-  tipTitle: {
-    fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700',
-    marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.8,
-  },
-  tipText: { fontSize: 13, color: 'white', lineHeight: 19 },
+grid:    { paddingHorizontal:20, flexDirection:‘row’, flexWrap:‘wrap’, gap:10, marginBottom:20 },
+btnPrimary: { width:‘100%’, backgroundColor:Colors.blueDeep, borderRadius:999, paddingVertical:14, alignItems:‘center’, shadowColor:Colors.blueDeep, shadowOpacity:0.35, shadowRadius:16, elevation:6 },
+btnPrimaryText: { color:‘white’, fontSize:14, fontWeight:‘700’ },
+btnSec:  { width:‘100%’, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:999, paddingVertical:12, alignItems:‘center’, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, shadowColor:Colors.blueDeep, shadowOpacity:0.08, shadowRadius:8, elevation:2 },
+btnSecText:{ color:Colors.blueDeep, fontSize:14, fontWeight:‘600’ },
+quickCard: { width:(width-50)/2, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:18, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, padding:16, shadowColor:Colors.blueDeep, shadowOpacity:0.07, shadowRadius:8, elevation:2 },
+quickIcon: { fontSize:22, marginBottom:8 },
+quickLabel:{ fontSize:13, color:Colors.textPrimary, fontWeight:‘500’ },
 
-  sectionTitle: {
-    fontSize: 12, fontWeight: '700', color: '#154273',
-    textTransform: 'uppercase', letterSpacing: 1.5,
-    marginBottom: 12, paddingHorizontal: 20,
-  },
+proRow:  { flexDirection:‘row’, gap:10, paddingHorizontal:20, marginBottom:20 },
+proCard: { flex:1, backgroundColor:‘rgba(255,255,255,0.65)’, borderRadius:16, padding:12, alignItems:‘center’, gap:4, borderWidth:1, borderColor:‘rgba(255,255,255,0.9)’, shadowColor:Colors.blueDeep, shadowOpacity:0.06, shadowRadius:6, elevation:1 },
+proIcon: { fontSize:20 },
+proLabel:{ fontSize:10, fontWeight:‘600’, color:Colors.blueDeep },
 
-  proRow: {
-    flexDirection: 'row', gap: 10,
-    paddingHorizontal: 20, marginBottom: 24,
-  },
-  proCard: {
-    flex: 1, backgroundColor: 'white',
-    borderRadius: 12, padding: 12,
-    alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: '#dde3ed',
-    shadowColor: '#154273', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
-  },
-  proCardIcon: { fontSize: 22 },
-  proCardLabel: { fontSize: 10, fontWeight: '600', color: '#154273', textAlign: 'center' },
-
-  grid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    marginBottom: 24, paddingHorizontal: 20,
-  },
-  quickCard: {
-    width: (width - 50) / 2, backgroundColor: 'white',
-    borderWidth: 1, borderColor: '#dde3ed', borderRadius: 14, padding: 16,
-    shadowColor: '#154273', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  quickIcon: { fontSize: 24, marginBottom: 8 },
-  quickLabel: { color: '#2c3e50', fontSize: 13, fontWeight: '500' },
-
-  ctaButton: {
-    backgroundColor: '#154273', borderRadius: 14, padding: 18,
-    alignItems: 'center', marginHorizontal: 20, marginBottom: 20,
-    shadowColor: '#154273', shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
-  },
-  ctaText: { color: 'white', fontSize: 16, fontWeight: '700' },
-  disclaimer: {
-    color: '#a0aec0', fontSize: 11, textAlign: 'center',
-    lineHeight: 16, paddingHorizontal: 20,
-  },
+disclaimer: { color:Colors.textLight, fontSize:11, textAlign:‘center’, lineHeight:16, paddingHorizontal:24 },
 });
