@@ -1,8 +1,9 @@
 import React from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, Dimensions
+  StyleSheet, Dimensions
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { QUICK_QUESTIONS } from '../constants/prompts';
 
 const { width } = Dimensions.get('window');
@@ -15,21 +16,24 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+
         <View style={styles.header}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoIcon}>⚖</Text>
+            <Text style={styles.logoIcon}>⚖️</Text>
           </View>
           <Text style={styles.appName}>FiscaalAI</Text>
-          <Text style={styles.tagline}>Nederlands Belastingadvies</Text>
+          <Text style={styles.tagline}>Persoonlijk belastingadvies</Text>
           <View style={styles.liveBadge}>
-            <Text style={styles.liveDot}>●</Text>
+            <View style={styles.liveDot} />
             <Text style={styles.liveText}>Live AI — Altijd actueel</Text>
           </View>
         </View>
 
-        <Text style={styles.intro}>
-          Stel uw belastingvraag en ontvang direct professioneel advies over het Nederlandse belastingrecht.
-        </Text>
+        <View style={styles.introCard}>
+          <Text style={styles.introText}>
+            Stel uw belastingvraag en ontvang direct professioneel advies over het Nederlandse belastingrecht.
+          </Text>
+        </View>
 
         <Text style={styles.sectionTitle}>Populaire vragen</Text>
         <View style={styles.grid}>
@@ -53,48 +57,89 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.disclaimer}>
           FiscaalAI geeft informatief advies. Geen vervanging voor een gecertificeerde belastingadviseur.
         </Text>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0a1628' },
-  container: { padding: 24, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 28, marginTop: 12 },
+  safe: { flex: 1, backgroundColor: '#EEF2F7' },
+  container: { padding: 20, paddingBottom: 40 },
+
+  header: {
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 12,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#154273',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
   logoBox: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: '#ff8c00',
+    width: 64, height: 64, borderRadius: 14,
+    backgroundColor: '#154273',
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-    shadowColor: '#ff8c00', shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
+    shadowColor: '#154273', shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
   },
   logoIcon: { fontSize: 30 },
-  appName: { fontSize: 28, color: '#ffd700', fontWeight: 'bold', letterSpacing: 1 },
-  tagline: { fontSize: 12, color: '#a08060', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 },
+  appName: { fontSize: 26, color: '#154273', fontWeight: '700', letterSpacing: 0.5 },
+  tagline: { fontSize: 12, color: '#7a8fa8', letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 4 },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,180,100,0.15)',
-    borderWidth: 1, borderColor: 'rgba(0,200,100,0.3)',
-    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, marginTop: 12,
+    backgroundColor: 'rgba(46,204,113,0.1)',
+    borderWidth: 1, borderColor: 'rgba(46,204,113,0.3)',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, marginTop: 12,
+    gap: 6,
   },
-  liveDot: { color: '#4a8', marginRight: 6, fontSize: 10 },
-  liveText: { color: '#4a8', fontSize: 11 },
-  intro: { color: '#a08060', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
-  sectionTitle: { color: '#e8dcc8', fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28 },
+  liveDot: {
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: '#2ecc71',
+  },
+  liveText: { color: '#27ae60', fontSize: 11, fontWeight: '600' },
+
+  introCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#154273',
+    shadowColor: '#154273',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  introText: { color: '#4a5568', fontSize: 14, lineHeight: 22 },
+
+  sectionTitle: {
+    color: '#154273', fontSize: 12, letterSpacing: 1.5,
+    textTransform: 'uppercase', fontWeight: '700', marginBottom: 12,
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   quickCard: {
-    width: (width - 58) / 2,
-    backgroundColor: 'rgba(255,165,0,0.07)',
-    borderWidth: 1, borderColor: 'rgba(255,165,0,0.2)',
+    width: (width - 50) / 2,
+    backgroundColor: 'white',
+    borderWidth: 1, borderColor: '#dde3ed',
     borderRadius: 12, padding: 16,
+    shadowColor: '#154273',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   quickIcon: { fontSize: 24, marginBottom: 8 },
-  quickLabel: { color: '#e8dcc8', fontSize: 13 },
+  quickLabel: { color: '#2c3e50', fontSize: 13, fontWeight: '500', lineHeight: 18 },
+
   ctaButton: {
-    backgroundColor: '#ff8c00', borderRadius: 14, padding: 18,
-    alignItems: 'center', marginBottom: 24,
-    shadowColor: '#ff8c00', shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
+    backgroundColor: '#154273',
+    borderRadius: 12, padding: 18,
+    alignItems: 'center', marginBottom: 20,
+    shadowColor: '#154273', shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
   },
-  ctaText: { color: '#0a1628', fontSize: 16, fontWeight: 'bold' },
-  disclaimer: { color: '#5a4a3a', fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  ctaText: { color: 'white', fontSize: 16, fontWeight: '700' },
+
+  disclaimer: { color: '#a0aec0', fontSize: 11, textAlign: 'center', lineHeight: 16 },
 });
