@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, KeyboardAvoidingView,
-  Platform, ActivityIndicator, Alert
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SYSTEM_PROMPT } from '../constants/prompts';
 
 const API_URL = 'https://fiscaal-ai.vercel.app/api/chat';
 
@@ -13,11 +13,21 @@ export default function ChatScreen({ navigation, route }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const listRef = useRef(null);
+  const userData = route.params?.userData || null;
+  const userName = userData?.name || null;
 
   useEffect(() => {
     const initial = route.params?.initialQuestion;
     if (initial) sendMessage(initial);
   }, []);
+
+  const buildSystemPrompt = () => {
+    let prompt = SYSTEM_PROMPT;
+    if (userName) {
+      prompt += `\n\nDe naam van de gebruiker is ${userName}. Gebruik deze naam natuurlijk in je antwoorden.`;
+    }
+    return prompt;
+  };
 
   const sendMessage = async (text) => {
     const userText = text || input.trim();
@@ -30,20 +40,17 @@ export default function ChatScreen({ navigation, route }) {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({
+          messages: newMessages,
+          system: buildSystemPrompt(),
+        }),
       });
       const data = await response.json();
-      console.log('API response:', JSON.stringify(data));
       if (!response.ok) throw new Error(data.error?.message || 'API fout');
-
       const assistantText =
         data.content?.filter(b => b.type === 'text').map(b => b.text).join('\n') ||
-        data.message ||
-        data.text ||
-        data.response ||
-        data.choices?.[0]?.message?.content ||
-        null;
-
+        data.message || data.text || data.response ||
+        data.choices?.[0]?.message?.content || null;
       if (!assistantText) throw new Error('Geen antwoord ontvangen');
       setMessages([...newMessages, { role: 'assistant', content: assistantText }]);
     } catch (err) {
@@ -56,9 +63,7 @@ export default function ChatScreen({ navigation, route }) {
 
   const renderMessage = ({ item, index }) => (
     <View key={index} style={[styles.msgRow, item.role === 'user' ? styles.msgRight : styles.msgLeft]}>
-      {item.role === 'assistant' && (
-        <Text style={styles.aiLabel}>⚖ FiscaalAI</Text>
-      )}
+      {item.role === 'assistant' && <Text style={styles.aiLabel}>Taxly</Text>}
       <View style={[styles.bubble, item.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
         <Text style={[styles.bubbleText, item.role === 'user' && styles.bubbleTextUser]}>
           {item.content}
@@ -77,11 +82,13 @@ export default function ChatScreen({ navigation, route }) {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <View style={styles.headerIcon}>
-              <Text style={styles.headerIconText}>⚖️</Text>
+              <Text style={styles.headerIconText}>T</Text>
             </View>
             <View>
-              <Text style={styles.headerTitle}>FiscaalAI</Text>
-              <Text style={styles.headerSub}>Belastingadvies</Text>
+              <Text style={styles.headerTitle}>Taxly</Text>
+              <Text style={styles.headerSub}>
+                {userName ? `Spreekt u aan als "${userName}"` : 'Belastingadvies'}
+              </Text>
             </View>
           </View>
           <View style={styles.onlineDot} />
@@ -95,12 +102,14 @@ export default function ChatScreen({ navigation, route }) {
           contentContainerStyle={styles.messageList}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Stel uw belastingvraag hieronder...</Text>
+            <Text style={styles.emptyText}>
+              {userName ? `Goedendag ${userName}, stel uw belastingvraag hieronder.` : 'Stel uw belastingvraag hieronder...'}
+            </Text>
           }
           ListFooterComponent={loading ? (
             <View style={styles.typingRow}>
               <ActivityIndicator size="small" color="#154273" />
-              <Text style={styles.typingText}>FiscaalAI zoekt op...</Text>
+              <Text style={styles.typingText}>Taxly zoekt op...</Text>
             </View>
           ) : null}
         />
@@ -112,8 +121,7 @@ export default function ChatScreen({ navigation, route }) {
             onChangeText={setInput}
             placeholder="Stel uw vraag..."
             placeholderTextColor="#a0aec0"
-            multiline
-            maxLength={500}
+            multiline maxLength={500}
             editable={!loading}
           />
           <TouchableOpacity
@@ -137,77 +145,57 @@ export default function ChatScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#EEF2F7' },
   flex: { flex: 1 },
-
   header: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
-    backgroundColor: 'white',
-    borderBottomWidth: 1, borderBottomColor: '#dde3ed',
+    backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#dde3ed',
     shadowColor: '#154273', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
   },
   backBtn: { marginRight: 10, padding: 4 },
   backText: { color: '#154273', fontSize: 22, fontWeight: '600' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerIcon: {
-    width: 34, height: 34, borderRadius: 8,
+    width: 34, height: 34, borderRadius: 10,
     backgroundColor: '#154273',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerIconText: { fontSize: 16 },
+  headerIconText: { fontSize: 16, fontWeight: '800', color: 'white' },
   headerTitle: { color: '#154273', fontSize: 15, fontWeight: '700' },
-  headerSub: { color: '#7a8fa8', fontSize: 10, letterSpacing: 0.5 },
+  headerSub: { color: '#7a8fa8', fontSize: 10 },
   onlineDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#2ecc71',
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#2ecc71',
     shadowColor: '#2ecc71', shadowOpacity: 0.4, shadowRadius: 4,
   },
-
   messageList: { padding: 16, paddingBottom: 8 },
-  emptyText: { color: '#a0aec0', textAlign: 'center', marginTop: 60, fontSize: 14 },
-
+  emptyText: { color: '#a0aec0', textAlign: 'center', marginTop: 60, fontSize: 14, paddingHorizontal: 20 },
   msgRow: { marginBottom: 16 },
   msgRight: { alignItems: 'flex-end' },
   msgLeft: { alignItems: 'flex-start' },
-
-  aiLabel: {
-    color: '#154273', fontSize: 10, fontWeight: '700',
-    letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase',
-  },
+  aiLabel: { color: '#154273', fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 4, textTransform: 'uppercase' },
   bubble: { maxWidth: '85%', borderRadius: 4, padding: 14 },
   bubbleUser: {
-    backgroundColor: '#154273',
-    borderRadius: 12,
-    borderBottomRightRadius: 4,
+    backgroundColor: '#154273', borderRadius: 12, borderBottomRightRadius: 4,
     shadowColor: '#154273', shadowOpacity: 0.2, shadowRadius: 8, elevation: 3,
   },
   bubbleAI: {
-    backgroundColor: 'white',
-    borderRadius: 4,
-    borderBottomLeftRadius: 12,
+    backgroundColor: 'white', borderRadius: 4, borderBottomLeftRadius: 12,
     borderWidth: 1, borderColor: '#dde3ed',
     shadowColor: '#154273', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
   bubbleText: { color: '#2c3e50', fontSize: 14, lineHeight: 21 },
   bubbleTextUser: { color: 'white' },
-
   typingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    padding: 12, backgroundColor: 'white',
-    borderRadius: 12, marginBottom: 8,
-    borderWidth: 1, borderColor: '#dde3ed',
-    alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12,
+    backgroundColor: 'white', borderRadius: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: '#dde3ed', alignSelf: 'flex-start',
   },
   typingText: { color: '#7a8fa8', fontSize: 13 },
-
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', padding: 12,
-    borderTopWidth: 1, borderTopColor: '#dde3ed',
-    backgroundColor: 'white', gap: 8,
+    borderTopWidth: 1, borderTopColor: '#dde3ed', backgroundColor: 'white', gap: 8,
   },
   input: {
-    flex: 1, backgroundColor: '#EEF2F7',
-    borderWidth: 1, borderColor: '#dde3ed',
-    borderRadius: 20, padding: 12,
-    color: '#2c3e50', fontSize: 14, maxHeight: 100,
+    flex: 1, backgroundColor: '#EEF2F7', borderWidth: 1, borderColor: '#dde3ed',
+    borderRadius: 20, padding: 12, color: '#2c3e50', fontSize: 14, maxHeight: 100,
   },
   sendBtn: {
     backgroundColor: '#154273', borderRadius: 50,
@@ -216,10 +204,8 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: { backgroundColor: '#cdd5e0' },
   sendIcon: { color: 'white', fontSize: 20, fontWeight: 'bold' },
-
   footerDisclaimer: {
     color: '#a0aec0', fontSize: 10, textAlign: 'center',
-    paddingBottom: 8, paddingHorizontal: 16,
-    backgroundColor: 'white',
+    paddingBottom: 8, paddingHorizontal: 16, backgroundColor: 'white',
   },
 });
