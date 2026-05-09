@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, SafeAreaView, KeyboardAvoidingView,
+  StyleSheet, KeyboardAvoidingView,
   Platform, ActivityIndicator, Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const API_URL = 'https://fiscaal-ai.vercel.app/api/chat';
 
@@ -35,7 +36,6 @@ export default function ChatScreen({ navigation, route }) {
       console.log('API response:', JSON.stringify(data));
       if (!response.ok) throw new Error(data.error?.message || 'API fout');
 
-      // Ondersteun meerdere response-formaten (Claude, OpenAI, custom)
       const assistantText =
         data.content?.filter(b => b.type === 'text').map(b => b.text).join('\n') ||
         data.message ||
