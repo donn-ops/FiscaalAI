@@ -4,12 +4,14 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { getUserData } from './src/utils/storage';
+import { initializePurchases } from './src/utils/purchases';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
+import PaywallScreen from './src/screens/PaywallScreen';
 
 const Stack = createStackNavigator();
 
@@ -20,6 +22,7 @@ export default function App() {
     getUserData().then((data) => {
       setInitialRoute(data?.name ? 'Home' : 'Onboarding');
     });
+    initializePurchases();
   }, []);
 
   if (!initialRoute) {
@@ -40,6 +43,7 @@ export default function App() {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Favorites" component={FavoritesScreen} />
+        <Stack.Screen name="Paywall" component={PaywallScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
