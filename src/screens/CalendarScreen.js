@@ -1,220 +1,105 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getUserData, getTaxProfile } from '../utils/storage';
+import { getUserData } from '../utils/storage';
+import { Colors, Radii, Shadows } from '../constants/theme';
 
-const getDeadlines = (profile) => {
-  const year = new Date().getFullYear();
-  const base = [
-    {
-      date: `${year}-05-01`,
-      title: 'Aangifte Inkomstenbelasting',
-      desc: 'Deadline voor particulieren en ZZP\'ers',
-      icon: '📋',
-      color: '#154273',
-      urgent: true,
-    },
-    {
-      date: `${year}-03-01`,
-      title: 'Voorlopige aanslag aanvragen',
-      desc: 'Voorkom belastingrente door tijdig aan te vragen',
-      icon: '📄',
-      color: '#1e5fa8',
-    },
-    {
-      date: `${year}-12-31`,
-      title: 'Fiscaal partnerschap check',
-      desc: 'Controleer uw fiscale situatie voor einde jaar',
-      icon: '👥',
-      color: '#2d7dd2',
-    },
-  ];
+const DEADLINES = [
+  { date:'15 APR', month:'APR', day:'15', title:'BTW Q1 ingediend',  status:'ok',      tag:'OK' },
+  { date:'01 MEI', month:'MEI', day:'01', title:'Aangifte 2024',     status:'action',  tag:'ACTIE' },
+  { date:'01 MEI', month:'MEI', day:'01', title:'Aangifte 2023',     status:'overdue', tag:'VERLOPEN' },
+  { date:'15 JUL', month:'JUL', day:'15', title:'BTW Q2 indienen',   status:'action',  tag:'ACTIE' },
+  { date:'15 OKT', month:'OKT', day:'15', title:'BTW Q3 indienen',   status:'plan',    tag:'GEPLAND' },
+];
 
-  if (profile?.situation === 'zzp' || profile?.situation === 'mkb') {
-    base.push(
-      {
-        date: `${year}-01-31`,
-        title: 'BTW aangifte Q4',
-        desc: 'Omzetbelasting vierde kwartaal',
-        icon: '💼',
-        color: '#e17000',
-      },
-      {
-        date: `${year}-04-30`,
-        title: 'BTW aangifte Q1',
-        desc: 'Omzetbelasting eerste kwartaal',
-        icon: '💼',
-        color: '#e17000',
-      },
-      {
-        date: `${year}-07-31`,
-        title: 'BTW aangifte Q2',
-        desc: 'Omzetbelasting tweede kwartaal',
-        icon: '💼',
-        color: '#e17000',
-      },
-      {
-        date: `${year}-10-31`,
-        title: 'BTW aangifte Q3',
-        desc: 'Omzetbelasting derde kwartaal',
-        icon: '💼',
-        color: '#e17000',
-      }
-    );
-  }
-
-  if (profile?.ownHome) {
-    base.push({
-      date: `${year}-04-01`,
-      title: 'Hypotheekrenteaftrek',
-      desc: 'Vergeet uw hypotheekrenteaftrek niet',
-      icon: '🏠',
-      color: '#16a34a',
-    });
-  }
-
-  return base.sort((a, b) => new Date(a.date) - new Date(b.date));
+const STATUS_COLORS = {
+  ok:      { dot:'#10b981', bg:'rgba(16,185,129,0.1)',  text:'#065f46', border:'rgba(16,185,129,0.25)' },
+  action:  { dot:'#f59e0b', bg:'rgba(245,158,11,0.12)', text:'#A25A04', border:'rgba(245,158,11,0.3)'  },
+  overdue: { dot:'#ef4444', bg:'rgba(239,68,68,0.1)',   text:'#B91C1C', border:'rgba(239,68,68,0.28)'  },
+  plan:    { dot:'#94a3b8', bg:'rgba(148,163,184,0.14)',text:'#475569', border:'rgba(148,163,184,0.3)'  },
 };
 
-const getDaysUntil = (dateStr) => {
-  const today = new Date();
-  const target = new Date(dateStr);
-  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-  return diff;
-};
+const FILTERS = ['Alles', 'Aankomend', 'Verlopen'];
 
 export default function CalendarScreen({ navigation }) {
-  const [profile, setProfile] = useState(null);
-  const [userData, setUserData] = useState(null);
-  const [deadlines, setDeadlines] = useState([]);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const user = await getUserData();
-    const p = await getTaxProfile();
-    setUserData(user);
-    setProfile(p);
-    setDeadlines(getDeadlines(p));
-  };
-
-  const getUrgencyColor = (days) => {
-    if (days < 0) return '#a0aec0';
-    if (days <= 14) return '#e53e3e';
-    if (days <= 30) return '#e17000';
-    return '#16a34a';
-  };
-
-  const getUrgencyLabel = (days) => {
-    if (days < 0) return 'Verlopen';
-    if (days === 0) return 'Vandaag!';
-    if (days === 1) return 'Morgen!';
-    if (days <= 14) return `${days} dagen`;
-    if (days <= 30) return `${days} dagen`;
-    return `${days} dagen`;
-  };
+  const [filter, setFilter] = useState('Alles');
+  const filtered = DEADLINES.filter(d => {
+    if (filter === 'Aankomend') return d.status === 'action' || d.status === 'plan';
+    if (filter === 'Verlopen')  return d.status === 'overdue' || d.status === 'ok';
+    return true;
+  });
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+    <SafeAreaView style={s.safe}>
+      <View style={s.header}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Text style={s.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Belastingkalender</Text>
-        <View style={{ width: 34 }} />
+        <Text style={s.headerTitle}>Belastingkalender</Text>
+        <View style={{ width:40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>📅</Text>
-          <View style={styles.infoText}>
-            <Text style={styles.infoTitle}>Uw persoonlijke kalender</Text>
-            <Text style={styles.infoDesc}>
-              Deadlines op basis van uw belastingprofiel
-              {profile?.situation ? ` (${profile.situation.toUpperCase()})` : ''}
-            </Text>
-          </View>
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={s.year}>2025</Text>
+
+        <View style={s.filterRow}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f}
+              style={[s.filterBtn, filter === f && s.filterBtnActive]}
+              onPress={() => setFilter(f)}
+              activeOpacity={0.75}
+            >
+              <Text style={[s.filterText, filter === f && s.filterTextActive]}>{f}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {deadlines.map((d, i) => {
-          const days = getDaysUntil(d.date);
-          const urgencyColor = getUrgencyColor(days);
-          const isPast = days < 0;
-
-          return (
-            <View key={i} style={[styles.deadlineCard, isPast && styles.deadlineCardPast]}>
-              <View style={[styles.deadlineLeft, { backgroundColor: isPast ? '#f0f4f8' : `${d.color}15` }]}>
-                <Text style={styles.deadlineIcon}>{d.icon}</Text>
-                <Text style={[styles.deadlineDate, isPast && styles.deadlineDatePast]}>
-                  {new Date(d.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
-                </Text>
+        <View style={s.list}>
+          {filtered.map((d, i) => {
+            const c = STATUS_COLORS[d.status];
+            return (
+              <View key={i} style={[s.row, { borderColor: d.status !== 'ok' && d.status !== 'plan' ? c.border : 'rgba(255,255,255,0.9)' }]}>
+                <View style={s.dateBlock}>
+                  <Text style={s.dateDay}>{d.day}</Text>
+                  <Text style={s.dateMonth}>{d.month}</Text>
+                </View>
+                <View style={s.divider} />
+                <View style={[s.dot, { backgroundColor: c.dot }]} />
+                <Text style={s.rowTitle} numberOfLines={1}>{d.title}</Text>
+                <View style={[s.tag, { backgroundColor: c.bg, borderColor: c.border }]}>
+                  <Text style={[s.tagText, { color: c.text }]}>{d.tag}</Text>
+                </View>
               </View>
-              <View style={styles.deadlineContent}>
-                <Text style={[styles.deadlineTitle, isPast && styles.deadlineTitlePast]}>
-                  {d.title}
-                </Text>
-                <Text style={styles.deadlineDesc}>{d.desc}</Text>
-              </View>
-              <View style={[styles.urgencyBadge, { backgroundColor: `${urgencyColor}15` }]}>
-                <Text style={[styles.urgencyText, { color: urgencyColor }]}>
-                  {getUrgencyLabel(days)}
-                </Text>
-              </View>
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#EEF2F7' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'white', padding: 16,
-    borderBottomWidth: 1, borderBottomColor: '#dde3ed',
-    shadowColor: '#154273', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
-  backBtn: { padding: 4 },
-  backText: { color: '#154273', fontSize: 22, fontWeight: '600' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#154273' },
-  container: { padding: 16, gap: 10 },
-  infoCard: {
-    backgroundColor: '#154273', borderRadius: 14,
-    padding: 14, flexDirection: 'row', gap: 10,
-    alignItems: 'center', marginBottom: 6,
-  },
-  infoIcon: { fontSize: 24 },
-  infoText: { flex: 1 },
-  infoTitle: { fontSize: 13, fontWeight: '700', color: 'white' },
-  infoDesc: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  deadlineCard: {
-    backgroundColor: 'white', borderRadius: 14,
-    flexDirection: 'row', alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 1, borderColor: '#dde3ed',
-    shadowColor: '#154273', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  deadlineCardPast: { opacity: 0.5 },
-  deadlineLeft: {
-    width: 64, padding: 12,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
-  },
-  deadlineIcon: { fontSize: 20 },
-  deadlineDate: { fontSize: 10, fontWeight: '700', color: '#154273', textAlign: 'center' },
-  deadlineDatePast: { color: '#a0aec0' },
-  deadlineContent: { flex: 1, padding: 12 },
-  deadlineTitle: { fontSize: 13, fontWeight: '700', color: '#2c3e50', marginBottom: 2 },
-  deadlineTitlePast: { color: '#a0aec0' },
-  deadlineDesc: { fontSize: 11, color: '#7a8fa8', lineHeight: 15 },
-  urgencyBadge: {
-    margin: 12, paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 10,
-  },
-  urgencyText: { fontSize: 10, fontWeight: '700' },
+const s = StyleSheet.create({
+  safe:   { flex:1, backgroundColor: Colors.pageBg },
+  header: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:20, paddingVertical:13, borderBottomWidth:1, borderBottomColor:'rgba(255,255,255,0.65)', backgroundColor:'rgba(219,234,254,0.97)' },
+  backBtn:{ width:40, height:36, borderRadius:999, backgroundColor:'rgba(255,255,255,0.65)', alignItems:'center', justifyContent:'center', borderWidth:1, borderColor:'rgba(255,255,255,0.9)' },
+  backText:{ fontSize:18, color: Colors.blueDeep, fontWeight:'600' },
+  headerTitle:{ fontSize:15, fontWeight:'700', color: Colors.textPrimary },
+  scroll: { padding:20, paddingBottom:40 },
+  year:   { fontSize:28, fontWeight:'300', color: Colors.textPrimary, letterSpacing:-0.6, marginBottom:16 },
+  filterRow:{ flexDirection:'row', gap:8, marginBottom:16 },
+  filterBtn:{ flex:1, backgroundColor:'rgba(255,255,255,0.65)', borderRadius:999, paddingVertical:9, alignItems:'center', borderWidth:1, borderColor:'rgba(255,255,255,0.9)', ...Shadows.sm },
+  filterBtnActive:{ backgroundColor: Colors.blueDeep, borderColor: Colors.blueDeep },
+  filterText:{ fontSize:12, fontWeight:'600', color: Colors.textMuted },
+  filterTextActive:{ color:'#fff' },
+  list:   { gap:10 },
+  row:    { flexDirection:'row', alignItems:'center', gap:10, backgroundColor:'rgba(255,255,255,0.65)', borderRadius:16, borderWidth:1, padding:'12px 14px', paddingVertical:12, paddingHorizontal:14, ...Shadows.sm },
+  dateBlock:{ minWidth:36, alignItems:'center' },
+  dateDay:  { fontSize:15, fontWeight:'700', color: Colors.textPrimary, lineHeight:18 },
+  dateMonth:{ fontSize:8,  fontWeight:'700', color: Colors.textLight,   letterSpacing:0.6 },
+  divider:  { width:1, alignSelf:'stretch', backgroundColor:'rgba(147,197,253,0.4)' },
+  dot:      { width:7, height:7, borderRadius:999 },
+  rowTitle: { flex:1, fontSize:13, fontWeight:'600', color: Colors.textPrimary },
+  tag:      { borderRadius:999, paddingVertical:2, paddingHorizontal:8, borderWidth:1 },
+  tagText:  { fontSize:9, fontWeight:'700', letterSpacing:0.5 },
 });
