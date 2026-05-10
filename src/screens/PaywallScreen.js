@@ -1,305 +1,233 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, Alert
+  StyleSheet, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getOfferings, purchasePackage, restorePurchases } from '../utils/purchases';
-import { getUserData } from '../utils/storage';
+import { purchasePremium, purchasePro, restorePurchases } from '../utils/purchases';
 import { t } from '../constants/translations';
+import { getUserData } from '../utils/storage';
+import { Colors, Radii, Shadows } from '../constants/theme';
 
-const FEATURES_PREMIUM = [
-  { icon: '♾', name: 'Onbeperkte vragen', desc: 'Geen dagelijkse limiet' },
-  { icon: '🌍', name: 'Alle 4 talen', desc: 'NL · EN · DE · FR' },
-  { icon: '📄', name: 'PDF Export', desc: 'Adviezen opslaan en delen' },
-  { icon: '🔔', name: 'Slimme deadlines', desc: 'Persoonlijke belastingkalender' },
-  { icon: '⭐', name: 'Favorieten', desc: 'Onbeperkt opslaan' },
+const FEATURES = [
+  'Onbeperkt vragen aan Taxly',
+  'Bonnetjes scannen - automatisch geboekt',
+  'Belastingkalender met deadlines',
+  'Jaaroverzicht & rapportage',
+  'Prioriteitsondersteuning',
 ];
 
-const FEATURES_PRO = [
-  { icon: '📸', name: 'Document Scanner', desc: 'Bonnetjes automatisch analyseren', new: true },
-  { icon: '📊', name: 'Jaaroverzicht', desc: 'Alle aftrekposten in één overzicht', new: true },
-  { icon: '📁', name: 'Bonnetjes archief', desc: 'Lokaal opgeslagen, AVG-proof', new: true },
-  { icon: '📧', name: 'Adviseur export', desc: 'Één knop naar uw belastingadviseur', new: true },
-  { icon: '💼', name: 'BTW overzicht', desc: 'Kwartaaloverzicht voor ZZP' },
-  { icon: '🌍', name: 'Land switcher', desc: 'NL · BE · DE · FR belastingregels' },
-];
+function OrbSmall() {
+  return (
+    <View style={s.orbWrap}>
+      <View style={s.orb}>
+        <View style={s.orbShine} />
+      </View>
+    </View>
+  );
+}
 
-export default function PaywallScreen({ navigation, route }) {
-  const [offerings, setOfferings] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
-  const [selected, setSelected] = useState('pro');
-  const [lang, setLang] = useState('nl');
+export default function PaywallScreen({ navigation }) {
+  const [selected, setSelected] = useState('premium');
+  const [loading,  setLoading]  = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const user = await getUserData();
-    setLang(user?.language || 'nl');
-    const offering = await getOfferings();
-    setOfferings(offering);
+  const handlePurchase = async () => {
+    setLoading(true);
+    try {
+      if (selected === 'premium') await purchasePremium();
+      else await purchasePro();
+      Alert.alert('Welkom bij Taxly Premium!', 'Uw abonnement is geactiveerd.');
+      navigation.goBack();
+    } catch {
+      Alert.alert('Fout', 'Aankoop mislukt. Probeer opnieuw.');
+    }
     setLoading(false);
   };
 
-  const handlePurchase = async () => {
-    if (!offerings) return;
-    setPurchasing(true);
-    try {
-      const pkg = selected === 'pro'
-        ? offerings.availablePackages.find(p => p.identifier === 'taxly_pro_monthly')
-        : offerings.availablePackages.find(p => p.identifier === 'taxly_premium_monthly');
-
-      if (!pkg) {
-        Alert.alert('Fout', 'Pakket niet gevonden. Probeer opnieuw.');
-        return;
-      }
-
-      const info = await purchasePackage(pkg);
-      if (info) {
-        Alert.alert('✓ Welkom bij Taxly ' + (selected === 'pro' ? 'Pro' : 'Premium') + '!',
-          'Uw abonnement is geactiveerd.',
-          [{ text: 'Aan de slag', onPress: () => navigation.goBack() }]
-        );
-      }
-    } finally {
-      setPurchasing(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    setPurchasing(true);
-    const info = await restorePurchases();
-    setPurchasing(false);
-    if (info) {
-      Alert.alert('✓', 'Aankopen hersteld.');
-    } else {
-      Alert.alert('Geen aankopen gevonden.');
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={s.safe}>
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* HEADER */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
-            <Text style={styles.closeText}>✕</Text>
+        {/* Close */}
+        <TouchableOpacity style={s.closeBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Text style={s.closeBtnText}>✕</Text>
+        </TouchableOpacity>
+
+        {/* Orb */}
+        <OrbSmall />
+
+        {/* Title */}
+        <Text style={s.badge}>TAXLY PREMIUM</Text>
+        <Text style={s.title}>Onbeperkt advies,{'\n'}één vast bedrag</Text>
+
+        {/* Plan cards */}
+        <View style={s.planRow}>
+          <TouchableOpacity
+            style={[s.planCard, selected === 'free' && s.planCardSelected]}
+            onPress={() => setSelected('free')}
+            activeOpacity={0.8}
+          >
+            <Text style={s.planLabel}>BASIS</Text>
+            <Text style={s.planPrice}>Gratis</Text>
+            <Text style={s.planSub}>3 vragen / mnd</Text>
           </TouchableOpacity>
 
-          <View style={styles.logoRow}>
-            <View style={styles.logo}><Text style={styles.logoText}>T</Text></View>
-            <View>
-              <Text style={styles.brandName}>Taxly</Text>
-              <Text style={styles.brandTier}>Upgrade</Text>
-            </View>
-          </View>
-
-          <Text style={styles.heroTitle}>Alles wat u nodig heeft,{'\n'}zonder limieten.</Text>
-          <Text style={styles.heroSub}>Kies het pakket dat bij u past.</Text>
-        </View>
-
-        {/* TIER SELECTOR */}
-        <View style={styles.tierRow}>
           <TouchableOpacity
-            style={[styles.tierBtn, selected === 'premium' && styles.tierBtnActive]}
+            style={[s.planCard, s.planCardPremium, selected === 'premium' && s.planCardSelected]}
             onPress={() => setSelected('premium')}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.tierName, selected === 'premium' && styles.tierNameActive]}>Premium</Text>
-            <Text style={[styles.tierPrice, selected === 'premium' && styles.tierPriceActive]}>€2,99/mnd</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.tierBtn, styles.tierBtnPro, selected === 'pro' && styles.tierBtnProActive]}
-            onPress={() => setSelected('pro')}
-          >
-            <View style={styles.popularBadge}><Text style={styles.popularText}>Meest gekozen</Text></View>
-            <Text style={[styles.tierName, selected === 'pro' && styles.tierNameActive]}>Pro</Text>
-            <Text style={[styles.tierPrice, selected === 'pro' && styles.tierPriceActive]}>€6,99/mnd</Text>
+            <View style={s.popularBadge}>
+              <Text style={s.popularText}>POPULAIRST</Text>
+            </View>
+            <Text style={[s.planLabel, { color: Colors.blueDeep }]}>PREMIUM</Text>
+            <Text style={s.planPrice}>€6,99</Text>
+            <Text style={s.planSub}>per maand</Text>
           </TouchableOpacity>
         </View>
 
-        {/* FEATURES */}
-        <View style={styles.featuresCard}>
-          <Text style={styles.featuresTitle}>
-            {selected === 'pro' ? '👑 Pro bevat alles van Premium, plus:' : '⭐ Premium bevat:'}
-          </Text>
-
-          {selected === 'pro' && FEATURES_PRO.map((f, i) => (
-            <View key={i} style={styles.featureRow}>
-              <View style={styles.featureCheck}><Text style={styles.featureCheckText}>✓</Text></View>
-              <View style={styles.featureInfo}>
-                <Text style={styles.featureName}>{f.icon} {f.name}</Text>
-                <Text style={styles.featureDesc}>{f.desc}</Text>
+        {/* Features */}
+        <View style={s.featuresCard}>
+          {FEATURES.map((f, i) => (
+            <View key={i} style={s.featureRow}>
+              <View style={s.featureCheck}>
+                <Text style={s.featureCheckText}>✓</Text>
               </View>
-              {f.new && <View style={styles.newBadge}><Text style={styles.newBadgeText}>Nieuw</Text></View>}
-            </View>
-          ))}
-
-          {FEATURES_PREMIUM.map((f, i) => (
-            <View key={i} style={[styles.featureRow, selected === 'pro' && styles.featureRowMuted]}>
-              <View style={[styles.featureCheck, selected === 'pro' && styles.featureCheckMuted]}>
-                <Text style={styles.featureCheckText}>✓</Text>
-              </View>
-              <View style={styles.featureInfo}>
-                <Text style={[styles.featureName, selected === 'pro' && styles.featureNameMuted]}>
-                  {f.icon} {f.name}
-                </Text>
-                <Text style={styles.featureDesc}>{f.desc}</Text>
-              </View>
+              <Text style={s.featureText}>{f}</Text>
             </View>
           ))}
         </View>
 
         {/* CTA */}
-        <View style={styles.ctaArea}>
-          {loading ? (
-            <ActivityIndicator color="#154273" />
-          ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.ctaBtn, purchasing && styles.ctaBtnDisabled]}
-                onPress={handlePurchase}
-                disabled={purchasing}
-              >
-                {purchasing
-                  ? <ActivityIndicator color="white" />
-                  : <>
-                      <Text style={styles.ctaBtnText}>
-                        Start 7 dagen gratis →
-                      </Text>
-                      <Text style={styles.ctaBtnSub}>
-                        Daarna {selected === 'pro' ? '€6,99' : '€2,99'}/mnd · Altijd opzegbaar
-                      </Text>
-                    </>
-                }
-              </TouchableOpacity>
+        <TouchableOpacity
+          style={s.ctaBtn}
+          onPress={handlePurchase}
+          disabled={loading}
+          activeOpacity={0.88}
+        >
+          <Text style={s.ctaBtnText}>
+            {loading ? 'Laden…' : 'Start 14 dagen gratis →'}
+          </Text>
+        </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
-                <Text style={styles.restoreText}>Aankopen herstellen</Text>
-              </TouchableOpacity>
+        {/* Sub text — donkerblauw, niet wit */}
+        <Text style={s.subText}>Daarna €6,99/mnd · Altijd opzegbaar</Text>
 
-              <Text style={styles.disclaimer}>
-                Geen creditcard vereist · Altijd opzegbaar · AVG-proof
-              </Text>
-            </>
-          )}
-        </View>
+        <TouchableOpacity onPress={restorePurchases} activeOpacity={0.7}>
+          <Text style={s.restoreText}>Aankoop herstellen</Text>
+        </TouchableOpacity>
 
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: 'white' },
-  container: { paddingBottom: 40 },
+const s = StyleSheet.create({
+  safe:   { flex: 1, backgroundColor: Colors.pageBg },
+  scroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
-  header: {
-    background: 'transparent',
-    backgroundColor: '#154273',
-    padding: 20, paddingTop: 16,
-    paddingBottom: 28,
-  },
   closeBtn: {
     alignSelf: 'flex-end',
-    width: 28, height: 28,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 50,
+    width: 32, height: 32, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  closeText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  logo: {
-    width: 42, height: 42,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  logoText: { fontSize: 20, fontWeight: '800', color: 'white' },
-  brandName: { fontSize: 16, fontWeight: '800', color: 'white' },
-  brandTier: { fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5 },
-  heroTitle: {
-    fontSize: 22, fontWeight: '800', color: 'white',
-    lineHeight: 28, marginBottom: 6,
-  },
-  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  closeBtnText: { fontSize: 14, color: Colors.textMuted },
 
-  tierRow: {
-    flexDirection: 'row', gap: 10,
-    padding: 16, paddingBottom: 0,
+  orbWrap: { marginBottom: 16, alignItems: 'center' },
+  orb: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: Colors.blueDeep,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.65)',
+    overflow: 'hidden',
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.45,
+    shadowRadius: 24, shadowOffset: { width: 0, height: 8 }, elevation: 10,
   },
-  tierBtn: {
-    flex: 1, backgroundColor: '#EEF2F7',
-    borderRadius: 14, padding: 14,
-    alignItems: 'center',
-    borderWidth: 2, borderColor: '#dde3ed',
+  orbShine: {
+    position: 'absolute', top: -10, left: -10,
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  tierBtnActive: { borderColor: '#154273', backgroundColor: 'rgba(21,66,115,0.05)' },
-  tierBtnPro: { position: 'relative' },
-  tierBtnProActive: { borderColor: '#154273', backgroundColor: 'rgba(21,66,115,0.05)' },
+
+  badge: {
+    fontSize: 11, fontWeight: '700', letterSpacing: 2.5,
+    textTransform: 'uppercase', color: Colors.blueLight,
+    marginBottom: 8, textAlign: 'center',
+  },
+  title: {
+    fontSize: 26, fontWeight: '200', color: Colors.textPrimary,
+    letterSpacing: -0.8, lineHeight: 32, textAlign: 'center',
+    marginBottom: 24,
+  },
+
+  planRow: { flexDirection: 'row', gap: 10, width: '100%', marginBottom: 16 },
+  planCard: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: Radii.lg, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    padding: 14,
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.08,
+    shadowRadius: 10, elevation: 2,
+  },
+  planCardPremium: { backgroundColor: 'rgba(255,255,255,0.85)' },
+  planCardSelected: {
+    borderWidth: 2, borderColor: Colors.blueDeep,
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.2,
+    shadowRadius: 16, elevation: 6,
+  },
   popularBadge: {
-    position: 'absolute', top: -10,
-    backgroundColor: '#154273',
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 10,
+    position: 'absolute', top: -10, left: 10,
+    backgroundColor: Colors.blueDeep,
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2,
   },
-  popularText: { fontSize: 9, fontWeight: '800', color: 'white', textTransform: 'uppercase', letterSpacing: 0.8 },
-  tierName: { fontSize: 15, fontWeight: '700', color: '#7a8fa8', marginTop: 6 },
-  tierNameActive: { color: '#154273' },
-  tierPrice: { fontSize: 13, color: '#a0aec0', marginTop: 2 },
-  tierPriceActive: { color: '#154273', fontWeight: '700' },
+  popularText: { fontSize: 8, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+  planLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2, color: Colors.textMuted, textTransform: 'uppercase', marginTop: 4 },
+  planPrice: { fontSize: 22, fontWeight: '200', color: Colors.textPrimary, marginTop: 4, letterSpacing: -0.5 },
+  planSub:   { fontSize: 10, color: Colors.textMuted, marginTop: 2 },
 
   featuresCard: {
-    margin: 16, backgroundColor: '#EEF2F7',
-    borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: '#dde3ed',
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.65)',
+    borderRadius: Radii.xl, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    padding: 16, gap: 12, marginBottom: 24,
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.08,
+    shadowRadius: 12, elevation: 2,
   },
-  featuresTitle: {
-    fontSize: 12, fontWeight: '700', color: '#154273',
-    marginBottom: 12,
-  },
-  featureRow: {
-    flexDirection: 'row', alignItems: 'center',
-    gap: 10, marginBottom: 8,
-    padding: 10, backgroundColor: 'white',
-    borderRadius: 10, borderWidth: 1, borderColor: '#dde3ed',
-  },
-  featureRowMuted: { opacity: 0.6 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   featureCheck: {
-    width: 22, height: 22,
-    backgroundColor: '#154273', borderRadius: 50,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 22, height: 22, borderRadius: 999,
+    backgroundColor: Colors.blueDeep,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.3,
+    shadowRadius: 6, elevation: 3,
   },
-  featureCheckMuted: { backgroundColor: '#a0aec0' },
-  featureCheckText: { fontSize: 10, color: 'white', fontWeight: '700' },
-  featureInfo: { flex: 1 },
-  featureName: { fontSize: 12, fontWeight: '600', color: '#2c3e50' },
-  featureNameMuted: { color: '#7a8fa8' },
-  featureDesc: { fontSize: 10, color: '#a0aec0' },
-  newBadge: {
-    backgroundColor: 'rgba(21,66,115,0.1)',
-    paddingHorizontal: 7, paddingVertical: 2,
-    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(21,66,115,0.2)',
-  },
-  newBadgeText: { fontSize: 8, fontWeight: '800', color: '#154273', textTransform: 'uppercase' },
+  featureCheckText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  featureText: { fontSize: 13, color: Colors.textSecond, flex: 1 },
 
-  ctaArea: { padding: 16 },
   ctaBtn: {
-    backgroundColor: '#154273', borderRadius: 14,
-    padding: 16, alignItems: 'center',
-    shadowColor: '#154273', shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
-    marginBottom: 12,
+    width: '100%',
+    background: 'linear-gradient(135deg,#1e40af,#1d4ed8)',
+    backgroundColor: '#1d4ed8',
+    borderRadius: 999, paddingVertical: 15,
+    alignItems: 'center',
+    shadowColor: Colors.blueDeep, shadowOpacity: 0.45,
+    shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
+    elevation: 8, marginBottom: 10,
   },
-  ctaBtnDisabled: { backgroundColor: '#a0aec0' },
-  ctaBtnText: { fontSize: 16, fontWeight: '800', color: 'white' },
-  ctaBtnSub: { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 3 },
-  restoreBtn: { alignItems: 'center', padding: 10, marginBottom: 8 },
-  restoreText: { fontSize: 13, color: '#7a8fa8' },
-  disclaimer: { fontSize: 10, color: '#a0aec0', textAlign: 'center', lineHeight: 16 },
+  ctaBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+  // Niet wit — donkerblauw
+  subText: {
+    fontSize: 11, color: Colors.blueDeep,
+    fontWeight: '500', textAlign: 'center',
+    opacity: 0.65, marginBottom: 16,
+  },
+  restoreText: {
+    fontSize: 12, color: Colors.textMuted,
+    textAlign: 'center', textDecorationLine: 'underline',
+  },
 });
