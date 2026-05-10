@@ -145,7 +145,7 @@ export default function OnboardingScreen({ navigation }) {
 
 const s = StyleSheet.create({
   safe:   { flex:1, backgroundColor: Colors.pageBg },
-  scroll: { flexGrow:1, alignItems:'center', paddingHorizontal:28, paddingTop:24, paddingBottom:48 },
+  scroll: { flexGrow:1, alignItems:'center', paddingHorizontal:28, paddingTop:24, paddingBottom:120 },
   dots:   { flexDirection:'row', gap:7, marginBottom:36 },
   dot:    { height:5, width:7, borderRadius:999, backgroundColor:'rgba(147,197,253,0.35)' },
   dotActive:  { backgroundColor: Colors.blueBright },
