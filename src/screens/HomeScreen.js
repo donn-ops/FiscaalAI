@@ -26,20 +26,25 @@ function OrbSvg(){
   return(
     <Svg width={ORB} height={ORB} viewBox="0 0 140 140">
       <Defs>
-        <RadialGradient id="orbMain" cx="70" cy="70" r="66" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.9"/>
-          <Stop offset="12%"  stopColor="#dbeafe" stopOpacity="1"/>
-          <Stop offset="28%"  stopColor="#93c5fd" stopOpacity="1"/>
-          <Stop offset="48%"  stopColor="#3b82f6" stopOpacity="1"/>
-          <Stop offset="68%"  stopColor="#2563eb" stopOpacity="1"/>
-          <Stop offset="84%"  stopColor="#1d4ed8" stopOpacity="1"/>
-          <Stop offset="94%"  stopColor="#2563eb" stopOpacity="0.85"/>
-          <Stop offset="100%" stopColor="#3b82f6" stopOpacity="0.6"/>
+        <RadialGradient id="orbMain" cx="70" cy="70" r="70" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.95"/>
+          <Stop offset="8%"   stopColor="#f0f7ff" stopOpacity="1"/>
+          <Stop offset="18%"  stopColor="#dbeafe" stopOpacity="1"/>
+          <Stop offset="30%"  stopColor="#bfdbfe" stopOpacity="1"/>
+          <Stop offset="42%"  stopColor="#93c5fd" stopOpacity="1"/>
+          <Stop offset="55%"  stopColor="#60a5fa" stopOpacity="1"/>
+          <Stop offset="67%"  stopColor="#3b82f6" stopOpacity="1"/>
+          <Stop offset="77%"  stopColor="#2563eb" stopOpacity="1"/>
+          <Stop offset="86%"  stopColor="#1d4ed8" stopOpacity="1"/>
+          <Stop offset="93%"  stopColor="#1e40af" stopOpacity="0.9"/>
+          <Stop offset="97%"  stopColor="#2563eb" stopOpacity="0.55"/>
+          <Stop offset="100%" stopColor="#93c5fd" stopOpacity="0.15"/>
         </RadialGradient>
         {/* Highlight — top left shine */}
-        <RadialGradient id="shine" cx="48" cy="42" r="36" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.85"/>
-          <Stop offset="45%"  stopColor="#eff6ff" stopOpacity="0.4"/>
+        <RadialGradient id="shine" cx="50" cy="44" r="40" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.9"/>
+          <Stop offset="30%"  stopColor="#ffffff" stopOpacity="0.5"/>
+          <Stop offset="65%"  stopColor="#dbeafe" stopOpacity="0.2"/>
           <Stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
         </RadialGradient>
       </Defs>
