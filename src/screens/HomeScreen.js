@@ -8,17 +8,55 @@ const C = {
 const sh=(op=0.08,r=8)=>({shadowColor:'#1d4ed8',shadowOpacity:op,shadowRadius:r,shadowOffset:{width:0,height:2},elevation:Math.round(r/3)});
 
 import React,{useCallback,useRef,useState,useEffect} from 'react';
-import {View,Text,TouchableOpacity,StyleSheet,Animated} from 'react-native';
+import {View,Text,TouchableOpacity,StyleSheet,Animated,Dimensions} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {LinearGradient} from 'expo-linear-gradient';
+import Svg,{Defs,RadialGradient,Stop,Circle,Ellipse} from 'react-native-svg';
 import {useFocusEffect} from '@react-navigation/native';
 import {getUserData} from '../utils/storage';
 import {getDailyUsage} from '../utils/freemium';
 import {isPremium,isPro} from '../utils/purchases';
 
+const {width} = Dimensions.get('window');
 const getGreeting=()=>{const h=new Date().getHours();if(h<12)return'Goedemorgen';if(h<18)return'Goedemiddag';return'Goedenavond';};
 
-const ORB_SIZE = 140;
+const ORB = 140;
+
+function OrbSvg(){
+  return(
+    <Svg width={ORB} height={ORB} viewBox="0 0 140 140">
+      <Defs>
+        {/* Main radial gradient — dark bottom-right to light top-left */}
+        <RadialGradient id="orbMain" cx="38%" cy="32%" rx="65%" ry="65%" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#bfdbfe" stopOpacity="1"/>
+          <Stop offset="25%"  stopColor="#60a5fa" stopOpacity="1"/>
+          <Stop offset="55%"  stopColor="#2563eb" stopOpacity="1"/>
+          <Stop offset="80%"  stopColor="#1d4ed8" stopOpacity="1"/>
+          <Stop offset="100%" stopColor="#0b2a6f" stopOpacity="1"/>
+        </RadialGradient>
+        {/* Shine overlay — small bright ellipse top-left */}
+        <RadialGradient id="orbShine" cx="30%" cy="25%" rx="40%" ry="35%" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.55"/>
+          <Stop offset="60%"  stopColor="#ffffff" stopOpacity="0.1"/>
+          <Stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
+        </RadialGradient>
+        {/* Inner sphere glow */}
+        <RadialGradient id="orbInner" cx="50%" cy="50%" rx="50%" ry="50%" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#dbeafe" stopOpacity="0.8"/>
+          <Stop offset="70%"  stopColor="#93c5fd" stopOpacity="0.45"/>
+          <Stop offset="100%" stopColor="#93c5fd" stopOpacity="0"/>
+        </RadialGradient>
+      </Defs>
+      {/* Base orb */}
+      <Circle cx="70" cy="70" r="68" fill="url(#orbMain)"/>
+      {/* Shine */}
+      <Circle cx="70" cy="70" r="68" fill="url(#orbShine)"/>
+      {/* Inner sphere */}
+      <Circle cx="70" cy="70" r="28" fill="url(#orbInner)"/>
+      {/* Border */}
+      <Circle cx="70" cy="70" r="67" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+    </Svg>
+  );
+}
 
 function OrbView({active}){
   const float=useRef(new Animated.Value(0)).current;
@@ -28,26 +66,9 @@ function OrbView({active}){
       Animated.timing(float,{toValue:0,duration:2000,useNativeDriver:true}),
     ])).start();
   },[]);
-
   return(
-    <Animated.View style={{transform:[{translateY:float}],alignItems:'center'}}>
-      {/* Shadow ring */}
-      <View style={s.orbShadow}>
-        {/* Base dark layer */}
-        <View style={[StyleSheet.absoluteFillObject,{backgroundColor:'#0b2a6f',borderRadius:ORB_SIZE/2}]}/>
-        {/* Mid blue */}
-        <View style={[StyleSheet.absoluteFillObject,{backgroundColor:'#1d4ed8',borderRadius:ORB_SIZE/2,margin:4}]}/>
-        {/* Light blue top-left quadrant */}
-        <View style={{position:'absolute',top:0,left:0,width:ORB_SIZE*0.65,height:ORB_SIZE*0.65,backgroundColor:'#3b82f6',borderRadius:ORB_SIZE/2,opacity:0.9}}/>
-        {/* Pale blue top-left highlight */}
-        <View style={{position:'absolute',top:4,left:4,width:ORB_SIZE*0.45,height:ORB_SIZE*0.45,backgroundColor:'#93c5fd',borderRadius:ORB_SIZE/2,opacity:0.7}}/>
-        {/* White shine top-left */}
-        <View style={{position:'absolute',top:10,left:10,width:ORB_SIZE*0.28,height:ORB_SIZE*0.28,backgroundColor:'rgba(255,255,255,0.55)',borderRadius:ORB_SIZE/2}}/>
-        {/* Inner sphere */}
-        <View style={s.orbInner}/>
-        {/* Border overlay */}
-        <View style={[StyleSheet.absoluteFillObject,{borderRadius:ORB_SIZE/2,borderWidth:2,borderColor:'rgba(255,255,255,0.5)'}]}/>
-      </View>
+    <Animated.View style={{transform:[{translateY:float}],alignItems:'center',shadowColor:'#1d4ed8',shadowOpacity:0.4,shadowRadius:32,shadowOffset:{width:0,height:8},elevation:12}}>
+      <OrbSvg/>
       <Text style={[s.orbLabel,active&&{color:C.blue}]}>
         {active?'Ik luister...':'Tik om te spreken'}
       </Text>
@@ -72,12 +93,13 @@ export default function HomeScreen({navigation}){
   const startChat=(q=null)=>navigation.navigate('Chat',{initialQuestion:q,userData});
   const triggerListen=()=>{setListening(true);setTimeout(()=>setListening(false),3000);};
 
-  // Kalender zit al in de nav — dus niet hier
+  const BTN_W=(width-50)/2;
+
   const GRID=[
-    {icon:'✦', label:'Inzichten', onPress:()=>navigation.navigate('History')},
-    {icon:'📸', label:'Scanner',  onPress:()=>navigation.navigate('Scanner')},
-    {icon:'💬', label:'Geschiedenis', onPress:()=>navigation.navigate('History')},
-    {icon:'📁', label:'Archief',  onPress:()=>navigation.navigate('Favorites')},
+    {icon:'✦', label:'Inzichten',   onPress:()=>navigation.navigate('History')},
+    {icon:'📸', label:'Scanner',    onPress:()=>navigation.navigate('Scanner')},
+    {icon:'⭐', label:'Favorieten', onPress:()=>navigation.navigate('Favorites')},
+    {icon:'📁', label:'Archief',    onPress:()=>navigation.navigate('Favorites')},
   ];
 
   return(
@@ -109,7 +131,7 @@ export default function HomeScreen({navigation}){
           </TouchableOpacity>
           <View style={s.grid}>
             {GRID.map((item)=>(
-              <TouchableOpacity key={item.label} style={s.gridBtn} onPress={item.onPress} activeOpacity={0.75}>
+              <TouchableOpacity key={item.label} style={[s.gridBtn,{width:BTN_W}]} onPress={item.onPress} activeOpacity={0.75}>
                 <Text style={s.gridIcon}>{item.icon}</Text>
                 <Text style={s.gridLabel}>{item.label}</Text>
               </TouchableOpacity>
@@ -131,21 +153,6 @@ const s=StyleSheet.create({
   statusPill:{flexDirection:'row',alignItems:'center',gap:6,backgroundColor:'rgba(255,255,255,0.6)',borderRadius:999,paddingVertical:5,paddingHorizontal:13,borderWidth:1,borderColor:'rgba(16,185,129,0.25)'},
   statusDot:{width:6,height:6,borderRadius:999,backgroundColor:C.green},
   statusText:{fontSize:11,color:C.greenText,fontWeight:'600'},
-  orbShadow:{
-    width:ORB_SIZE,height:ORB_SIZE,borderRadius:ORB_SIZE/2,
-    overflow:'hidden',
-    shadowColor:'#1d4ed8',shadowOpacity:0.45,shadowRadius:32,
-    shadowOffset:{width:0,height:8},elevation:12,
-  },
-  orbInner:{
-    position:'absolute',
-    top:'50%',left:'50%',
-    width:ORB_SIZE*0.4,height:ORB_SIZE*0.4,
-    borderRadius:ORB_SIZE*0.2,
-    backgroundColor:'rgba(191,219,254,0.65)',
-    marginLeft:-(ORB_SIZE*0.2),
-    marginTop:-(ORB_SIZE*0.2),
-  },
   orbLabel:{fontSize:11,letterSpacing:2.2,textTransform:'uppercase',fontWeight:'600',color:C.bluePale,marginTop:10},
   actions:{gap:10},
   usageBar:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:C.surface,borderRadius:999,paddingVertical:10,paddingHorizontal:16,borderWidth:1,borderColor:C.border,...sh()},
@@ -154,7 +161,7 @@ const s=StyleSheet.create({
   btnPrimary:{backgroundColor:C.blue,borderRadius:999,paddingVertical:14,alignItems:'center',...sh(0.38,18)},
   btnPrimaryText:{color:'#fff',fontSize:15,fontWeight:'700'},
   grid:{flexDirection:'row',flexWrap:'wrap',gap:10},
-  gridBtn:{flex:1,backgroundColor:C.surface,borderRadius:999,paddingVertical:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,borderWidth:1,borderColor:C.border,...sh()},
+  gridBtn:{backgroundColor:C.surface,borderRadius:999,paddingVertical:13,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,borderWidth:1,borderColor:C.border,...sh()},
   gridIcon:{fontSize:15},
   gridLabel:{fontSize:13,fontWeight:'600',color:C.blue},
 });
