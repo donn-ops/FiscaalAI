@@ -53,8 +53,7 @@ function OrbSvg(){
       <Circle cx="70" cy="70" r="68" fill="url(#orbShine)"/>
       {/* Inner glow — groter zodat fade zachter is */}
       <Circle cx="70" cy="70" r="52" fill="url(#innerGlow)"/>
-      {/* Subtle border */}
-      <Circle cx="70" cy="70" r="67" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
+
     </Svg>
   );
 }
