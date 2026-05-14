@@ -1,23 +1,11 @@
 
 const C = {
-  pageBg:'#dbeafe',
-  surface:'rgba(255,255,255,0.65)',
-  surfaceHi:'rgba(255,255,255,0.85)',
-  blue:'#1d4ed8',
-  blueDeep:'#1e40af',
-  blueMid:'#2563eb',
-  blueLight:'#60a5fa',
-  bluePale:'#93c5fd',
-  text:'#0f172a',
-  textMid:'#334155',
-  textMuted:'#64748b',
-  textLight:'#94a3b8',
-  green:'#10b981',
-  greenText:'#065f46',
-  border:'rgba(255,255,255,0.9)',
-  white:'#ffffff',
+  pageBg:'#dbeafe',surface:'rgba(255,255,255,0.65)',surfaceHi:'rgba(255,255,255,0.85)',
+  blue:'#1d4ed8',blueDeep:'#1e40af',blueMid:'#2563eb',blueLight:'#60a5fa',bluePale:'#93c5fd',
+  text:'#0f172a',textMid:'#334155',textMuted:'#64748b',textLight:'#94a3b8',
+  green:'#10b981',greenText:'#065f46',border:'rgba(255,255,255,0.9)',white:'#ffffff',
 };
-const sh = (op=0.08,r=8) => ({shadowColor:'#1d4ed8',shadowOpacity:op,shadowRadius:r,shadowOffset:{width:0,height:2},elevation:Math.round(r/3)});
+const sh=(op=0.08,r=8)=>({shadowColor:'#1d4ed8',shadowOpacity:op,shadowRadius:r,shadowOffset:{width:0,height:2},elevation:Math.round(r/3)});
 
 import React,{useCallback,useRef,useState,useEffect} from 'react';
 import {View,Text,TouchableOpacity,StyleSheet,Animated} from 'react-native';
@@ -30,6 +18,8 @@ import {isPremium,isPro} from '../utils/purchases';
 
 const getGreeting=()=>{const h=new Date().getHours();if(h<12)return'Goedemorgen';if(h<18)return'Goedemiddag';return'Goedenavond';};
 
+const ORB_SIZE = 140;
+
 function OrbView({active}){
   const float=useRef(new Animated.Value(0)).current;
   useEffect(()=>{
@@ -41,25 +31,22 @@ function OrbView({active}){
 
   return(
     <Animated.View style={{transform:[{translateY:float}],alignItems:'center'}}>
-      {/* Outer glow ring */}
-      <View style={s.orbRing}>
-        {/* Main orb with gradient */}
-        <LinearGradient
-          colors={['#93c5fd','#3b82f6','#1d4ed8','#0b2a6f']}
-          start={{x:0.35,y:0.3}}
-          end={{x:0.65,y:0.7}}
-          style={s.orb}
-        >
-          {/* Top-left shine */}
-          <LinearGradient
-            colors={['rgba(255,255,255,0.55)','rgba(255,255,255,0)']}
-            start={{x:0.32,y:0.22}}
-            end={{x:0.7,y:0.7}}
-            style={s.orbShine}
-          />
-          {/* Inner sphere */}
-          <View style={s.orbInner}/>
-        </LinearGradient>
+      {/* Shadow ring */}
+      <View style={s.orbShadow}>
+        {/* Base dark layer */}
+        <View style={[StyleSheet.absoluteFillObject,{backgroundColor:'#0b2a6f',borderRadius:ORB_SIZE/2}]}/>
+        {/* Mid blue */}
+        <View style={[StyleSheet.absoluteFillObject,{backgroundColor:'#1d4ed8',borderRadius:ORB_SIZE/2,margin:4}]}/>
+        {/* Light blue top-left quadrant */}
+        <View style={{position:'absolute',top:0,left:0,width:ORB_SIZE*0.65,height:ORB_SIZE*0.65,backgroundColor:'#3b82f6',borderRadius:ORB_SIZE/2,opacity:0.9}}/>
+        {/* Pale blue top-left highlight */}
+        <View style={{position:'absolute',top:4,left:4,width:ORB_SIZE*0.45,height:ORB_SIZE*0.45,backgroundColor:'#93c5fd',borderRadius:ORB_SIZE/2,opacity:0.7}}/>
+        {/* White shine top-left */}
+        <View style={{position:'absolute',top:10,left:10,width:ORB_SIZE*0.28,height:ORB_SIZE*0.28,backgroundColor:'rgba(255,255,255,0.55)',borderRadius:ORB_SIZE/2}}/>
+        {/* Inner sphere */}
+        <View style={s.orbInner}/>
+        {/* Border overlay */}
+        <View style={[StyleSheet.absoluteFillObject,{borderRadius:ORB_SIZE/2,borderWidth:2,borderColor:'rgba(255,255,255,0.5)'}]}/>
       </View>
       <Text style={[s.orbLabel,active&&{color:C.blue}]}>
         {active?'Ik luister...':'Tik om te spreken'}
@@ -85,10 +72,11 @@ export default function HomeScreen({navigation}){
   const startChat=(q=null)=>navigation.navigate('Chat',{initialQuestion:q,userData});
   const triggerListen=()=>{setListening(true);setTimeout(()=>setListening(false),3000);};
 
+  // Kalender zit al in de nav — dus niet hier
   const GRID=[
     {icon:'✦', label:'Inzichten', onPress:()=>navigation.navigate('History')},
     {icon:'📸', label:'Scanner',  onPress:()=>navigation.navigate('Scanner')},
-    {icon:'📅', label:'Kalender', onPress:()=>navigation.navigate('Kalender')},
+    {icon:'💬', label:'Geschiedenis', onPress:()=>navigation.navigate('History')},
     {icon:'📁', label:'Archief',  onPress:()=>navigation.navigate('Favorites')},
   ];
 
@@ -143,17 +131,20 @@ const s=StyleSheet.create({
   statusPill:{flexDirection:'row',alignItems:'center',gap:6,backgroundColor:'rgba(255,255,255,0.6)',borderRadius:999,paddingVertical:5,paddingHorizontal:13,borderWidth:1,borderColor:'rgba(16,185,129,0.25)'},
   statusDot:{width:6,height:6,borderRadius:999,backgroundColor:C.green},
   statusText:{fontSize:11,color:C.greenText,fontWeight:'600'},
-  orbRing:{
-    width:146,height:146,borderRadius:73,
-    borderWidth:2,borderColor:'rgba(255,255,255,0.65)',
-    ...sh(0.4,36),
+  orbShadow:{
+    width:ORB_SIZE,height:ORB_SIZE,borderRadius:ORB_SIZE/2,
     overflow:'hidden',
+    shadowColor:'#1d4ed8',shadowOpacity:0.45,shadowRadius:32,
+    shadowOffset:{width:0,height:8},elevation:12,
   },
-  orb:{width:'100%',height:'100%',borderRadius:73,alignItems:'center',justifyContent:'center',overflow:'hidden'},
-  orbShine:{position:'absolute',inset:0,borderRadius:73},
   orbInner:{
-    width:56,height:56,borderRadius:28,
-    backgroundColor:'rgba(191,219,254,0.72)',
+    position:'absolute',
+    top:'50%',left:'50%',
+    width:ORB_SIZE*0.4,height:ORB_SIZE*0.4,
+    borderRadius:ORB_SIZE*0.2,
+    backgroundColor:'rgba(191,219,254,0.65)',
+    marginLeft:-(ORB_SIZE*0.2),
+    marginTop:-(ORB_SIZE*0.2),
   },
   orbLabel:{fontSize:11,letterSpacing:2.2,textTransform:'uppercase',fontWeight:'600',color:C.bluePale,marginTop:10},
   actions:{gap:10},
