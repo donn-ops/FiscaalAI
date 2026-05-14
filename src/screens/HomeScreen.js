@@ -38,20 +38,21 @@ function OrbSvg(){
           <Stop offset="50%"  stopColor="#ffffff" stopOpacity="0.15"/>
           <Stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
         </RadialGradient>
-        {/* Inner sphere — volledig vloeiend, geen harde rand */}
+        {/* Inner sphere — vloeiend in elkaar overgaand */}
         <RadialGradient id="innerGlow" cx="42%" cy="38%" rx="55%" ry="55%" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff"  stopOpacity="0.9"/>
-          <Stop offset="35%"  stopColor="#dbeafe"  stopOpacity="0.7"/>
-          <Stop offset="70%"  stopColor="#93c5fd"  stopOpacity="0.35"/>
-          <Stop offset="100%" stopColor="#3b82f6"  stopOpacity="0"/>
+          <Stop offset="0%"   stopColor="#ffffff"  stopOpacity="0.92"/>
+          <Stop offset="25%"  stopColor="#eff6ff"  stopOpacity="0.75"/>
+          <Stop offset="55%"  stopColor="#bfdbfe"  stopOpacity="0.4"/>
+          <Stop offset="80%"  stopColor="#93c5fd"  stopOpacity="0.12"/>
+          <Stop offset="100%" stopColor="#60a5fa"  stopOpacity="0"/>
         </RadialGradient>
       </Defs>
       {/* Base orb */}
       <Circle cx="70" cy="70" r="68" fill="url(#orbMain)"/>
       {/* Glass shine top-left */}
       <Circle cx="70" cy="70" r="68" fill="url(#orbShine)"/>
-      {/* Inner glow — vloeiend, geen harde rand */}
-      <Circle cx="70" cy="70" r="38" fill="url(#innerGlow)"/>
+      {/* Inner glow — groter zodat fade zachter is */}
+      <Circle cx="70" cy="70" r="52" fill="url(#innerGlow)"/>
       {/* Subtle border */}
       <Circle cx="70" cy="70" r="67" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5"/>
     </Svg>
