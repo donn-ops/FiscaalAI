@@ -26,11 +26,13 @@ function OrbSvg(){
     <Svg width={ORB} height={ORB} viewBox="0 0 140 140">
       <Defs>
         {/* Main radial gradient */}
-        <RadialGradient id="orbMain" cx="38%" cy="32%" rx="65%" ry="65%" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#93c5fd" stopOpacity="1"/>
-          <Stop offset="30%"  stopColor="#3b82f6" stopOpacity="1"/>
-          <Stop offset="65%"  stopColor="#1d4ed8" stopOpacity="1"/>
-          <Stop offset="100%" stopColor="#0b2a6f" stopOpacity="1"/>
+        <RadialGradient id="orbMain" cx="38%" cy="32%" rx="70" ry="70" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#bfdbfe" stopOpacity="1"/>
+          <Stop offset="20%"  stopColor="#93c5fd" stopOpacity="1"/>
+          <Stop offset="45%"  stopColor="#3b82f6" stopOpacity="1"/>
+          <Stop offset="72%"  stopColor="#1d4ed8" stopOpacity="1"/>
+          <Stop offset="90%"  stopColor="#1e3a8a" stopOpacity="1"/>
+          <Stop offset="100%" stopColor="#172554" stopOpacity="1"/>
         </RadialGradient>
         {/* Top-left glass shine */}
         <RadialGradient id="orbShine" cx="32%" cy="26%" rx="38%" ry="32%" gradientUnits="userSpaceOnUse">
@@ -67,7 +69,7 @@ function OrbView({active}){
     ])).start();
   },[]);
   return(
-    <Animated.View style={{transform:[{translateY:float}],alignItems:'center',shadowColor:'#1d4ed8',shadowOpacity:0.4,shadowRadius:32,shadowOffset:{width:0,height:8},elevation:12}}>
+    <Animated.View style={{transform:[{translateY:float}],alignItems:'center',shadowColor:'#1d4ed8',shadowOpacity:0.25,shadowRadius:40,shadowOffset:{width:0,height:10},elevation:10}}>
       <OrbSvg/>
       <Text style={[s.orbLabel,active&&{color:C.blue}]}>
         {active?'Ik luister...':'Tik om te spreken'}
