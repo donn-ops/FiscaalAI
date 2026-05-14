@@ -27,13 +27,14 @@ function OrbSvg(){
     <Svg width={ORB} height={ORB} viewBox="0 0 140 140">
       <Defs>
         <RadialGradient id="orbMain" cx="70" cy="70" r="66" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.95"/>
-          <Stop offset="15%"  stopColor="#bfdbfe" stopOpacity="1"/>
-          <Stop offset="35%"  stopColor="#60a5fa" stopOpacity="1"/>
-          <Stop offset="58%"  stopColor="#2563eb" stopOpacity="1"/>
-          <Stop offset="78%"  stopColor="#1d4ed8" stopOpacity="1"/>
-          <Stop offset="92%"  stopColor="#1e3a8a" stopOpacity="1"/>
-          <Stop offset="100%" stopColor="#172554" stopOpacity="1"/>
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.9"/>
+          <Stop offset="12%"  stopColor="#dbeafe" stopOpacity="1"/>
+          <Stop offset="28%"  stopColor="#93c5fd" stopOpacity="1"/>
+          <Stop offset="48%"  stopColor="#3b82f6" stopOpacity="1"/>
+          <Stop offset="68%"  stopColor="#2563eb" stopOpacity="1"/>
+          <Stop offset="84%"  stopColor="#1d4ed8" stopOpacity="1"/>
+          <Stop offset="94%"  stopColor="#2563eb" stopOpacity="0.85"/>
+          <Stop offset="100%" stopColor="#3b82f6" stopOpacity="0.6"/>
         </RadialGradient>
         {/* Highlight — top left shine */}
         <RadialGradient id="shine" cx="48" cy="42" r="36" gradientUnits="userSpaceOnUse">
