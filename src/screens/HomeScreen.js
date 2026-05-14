@@ -22,40 +22,30 @@ const getGreeting=()=>{const h=new Date().getHours();if(h<12)return'Goedemorgen'
 const ORB = 140;
 
 function OrbSvg(){
+  // SVG viewBox larger than visible area so gradient fades before the clip
   return(
     <Svg width={ORB} height={ORB} viewBox="0 0 140 140">
       <Defs>
-        {/* Main radial gradient */}
-        <RadialGradient id="orbMain" cx="38%" cy="32%" rx="70" ry="70" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#bfdbfe" stopOpacity="1"/>
-          <Stop offset="20%"  stopColor="#93c5fd" stopOpacity="1"/>
-          <Stop offset="45%"  stopColor="#3b82f6" stopOpacity="1"/>
-          <Stop offset="72%"  stopColor="#1d4ed8" stopOpacity="1"/>
-          <Stop offset="90%"  stopColor="#1e3a8a" stopOpacity="1"/>
+        <RadialGradient id="orbMain" cx="70" cy="70" r="66" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.95"/>
+          <Stop offset="15%"  stopColor="#bfdbfe" stopOpacity="1"/>
+          <Stop offset="35%"  stopColor="#60a5fa" stopOpacity="1"/>
+          <Stop offset="58%"  stopColor="#2563eb" stopOpacity="1"/>
+          <Stop offset="78%"  stopColor="#1d4ed8" stopOpacity="1"/>
+          <Stop offset="92%"  stopColor="#1e3a8a" stopOpacity="1"/>
           <Stop offset="100%" stopColor="#172554" stopOpacity="1"/>
         </RadialGradient>
-        {/* Top-left glass shine */}
-        <RadialGradient id="orbShine" cx="32%" cy="26%" rx="38%" ry="32%" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.65"/>
-          <Stop offset="50%"  stopColor="#ffffff" stopOpacity="0.15"/>
+        {/* Highlight — top left shine */}
+        <RadialGradient id="shine" cx="48" cy="42" r="36" gradientUnits="userSpaceOnUse">
+          <Stop offset="0%"   stopColor="#ffffff" stopOpacity="0.85"/>
+          <Stop offset="45%"  stopColor="#eff6ff" stopOpacity="0.4"/>
           <Stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
         </RadialGradient>
-        {/* Inner sphere — vloeiend in elkaar overgaand */}
-        <RadialGradient id="innerGlow" cx="42%" cy="38%" rx="55%" ry="55%" gradientUnits="userSpaceOnUse">
-          <Stop offset="0%"   stopColor="#ffffff"  stopOpacity="0.92"/>
-          <Stop offset="25%"  stopColor="#eff6ff"  stopOpacity="0.75"/>
-          <Stop offset="55%"  stopColor="#bfdbfe"  stopOpacity="0.4"/>
-          <Stop offset="80%"  stopColor="#93c5fd"  stopOpacity="0.12"/>
-          <Stop offset="100%" stopColor="#60a5fa"  stopOpacity="0"/>
-        </RadialGradient>
       </Defs>
-      {/* Base orb */}
-      <Circle cx="70" cy="70" r="68" fill="url(#orbMain)"/>
-      {/* Glass shine top-left */}
-      <Circle cx="70" cy="70" r="68" fill="url(#orbShine)"/>
-      {/* Inner glow — groter zodat fade zachter is */}
-      <Circle cx="70" cy="70" r="52" fill="url(#innerGlow)"/>
-
+      {/* Main orb */}
+      <Circle cx="70" cy="70" r="66" fill="url(#orbMain)"/>
+      {/* Shine overlay */}
+      <Circle cx="70" cy="70" r="66" fill="url(#shine)"/>
     </Svg>
   );
 }
